@@ -6,7 +6,7 @@ import fabricRoutes from "./routes/fabricRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import creatorRoutes from "./routes/creatorRoutes.js";
-import { errorHandler } from "./middleware/errorMiddleware.js";
+
 import { errorHandler } from "./middleware/errorHandler.js";
 
 dotenv.config();
