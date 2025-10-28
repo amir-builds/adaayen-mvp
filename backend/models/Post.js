@@ -1,26 +1,56 @@
+// models/Post.js
 import mongoose from "mongoose";
 
 const postSchema = new mongoose.Schema(
   {
-    creator: { type: mongoose.Schema.Types.ObjectId, ref: "Creator", required: true },
-    title: { type: String, required: true, trim: true },
-    description: { type: String },
-    // Backward compatibility field
+    creator: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "Creator", 
+      required: true 
+    },
+
+    title: { 
+      type: String, 
+      required: true, 
+      trim: true 
+    },
+
+    description: { 
+      type: String, 
+      trim: true 
+    },
+
+    // Optional field for fabric info
     fabricType: { 
       type: String, 
-      enum: ["Cotton", "Silk", "Linen", "Denim", "Other"], 
+      trim: true, 
       default: "Other" 
     },
 
-    // New relational field
-    fabric: { type: mongoose.Schema.Types.ObjectId, ref: "Fabric", required: false },
+    fabricLink: { 
+      type: String, 
+      trim: true 
+    },
 
-    imageUrl: { type: String, required: true },
-    price: { type: Number, required: true },
+    imageUrl: { 
+      type: String, 
+      required: true 
+    },
+
+    price: { 
+      type: Number 
+    },
+
+    // 👇 New field — admin can set this for homepage
+    isFeatured: { 
+      type: Boolean, 
+      default: false 
+    }
   },
   { timestamps: true }
 );
 
+// For faster lookup of creator’s posts
 postSchema.index({ creator: 1 });
 
 export default mongoose.model("Post", postSchema);

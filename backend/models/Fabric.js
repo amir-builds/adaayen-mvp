@@ -5,16 +5,16 @@ const fabricSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     description: { type: String },
     price: { type: Number, required: true },
-    category: {
+    fabricType: {  // ✅ Changed from 'category' to 'fabricType'
       type: String,
-      enum: ["Cotton", "Silk", "Linen", "Denim", "Other"],
+      enum: ["Cotton", "Silk", "Linen", "Denim", "Wool", "Polyester", "Other"],
       default: "Other",
     },
+    color: { type: String },  // ✅ Added color field
     imageUrl: { type: String, required: true },
     inStock: { type: Boolean, default: true },
 
-    // Link to creator (optional)
-    creator: { type: mongoose.Schema.Types.ObjectId, ref: "Creator", required: false },
+    // ❌ Removed creator field (only admin manages fabrics)
   },
   { timestamps: true }
 );

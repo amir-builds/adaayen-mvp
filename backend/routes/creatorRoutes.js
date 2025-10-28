@@ -1,14 +1,20 @@
-// backend/routes/creatorRoutes.js
 import express from "express";
-import { getCreatorProfile, updateCreatorProfile } from "../controllers/creatorController.js";
+import {
+  getAllCreators,
+  getCreatorById,
+  getCreatorProfile,
+  updateCreatorProfile,
+} from "../controllers/creatorController.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Get logged-in creator's profile
+// ✅ Protected routes FIRST (more specific)
 router.get("/profile", protect, getCreatorProfile);
-
-// Update profile info
 router.put("/profile", protect, updateCreatorProfile);
+
+// ✅ Public routes AFTER (less specific)
+router.get("/", getAllCreators);           // Get all creators
+router.get("/:id", getCreatorById);        // Get creator by ID
 
 export default router;
