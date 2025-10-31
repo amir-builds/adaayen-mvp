@@ -10,6 +10,7 @@ import { protect, adminOnly } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { body } from "express-validator";
 import { validate } from "../middleware/validate.js";
+import upload from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -32,11 +33,12 @@ router.post(
   "/",
   protect,
   adminOnly,
+  // Accept multiple images under field name 'images' (max controlled by MAX_FILES env var)
+  upload.array('images', parseInt(process.env.MAX_FILES, 10) || 6), // Add upload middleware
   [
     body("name").notEmpty().withMessage("Fabric name is required"),
     body("fabricType").notEmpty().withMessage("Fabric type is required"),
     body("price").isNumeric().withMessage("Price must be a number"),
-    body("imageUrl").notEmpty().withMessage("Image URL is required"),
   ],
   validate,
   asyncHandler(createFabric)

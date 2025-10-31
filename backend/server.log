@@ -1,0 +1,23 @@
+nohup: ignoring input
+[dotenv@17.2.3] injecting env (3) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+🚀 Server running on port 5000
+❌ Auth error: Operation `creators.findOne()` buffering timed out after 10000ms
+✅ MongoDB Connected: ac-1vbslyt-shard-00-00.dkhsgjg.mongodb.net
+✅ User authenticated: devamir121@gmail.com | Role: admin
+🔍 Checking admin access for: devamir121@gmail.com | Role: admin
+✅ Admin access granted
+✅ User authenticated: devamir121@gmail.com | Role: admin
+🔍 Checking admin access for: devamir121@gmail.com | Role: admin
+✅ Admin access granted
+✅ User authenticated: devamir121@gmail.com | Role: admin
+🔍 Checking admin access for: devamir121@gmail.com | Role: admin
+✅ Admin access granted
+✅ User authenticated: devamir121@gmail.com | Role: admin
+🔍 Checking admin access for: devamir121@gmail.com | Role: admin
+✅ Admin access granted
+✅ User authenticated: devamir121@gmail.com | Role: admin
+🔍 Checking admin access for: devamir121@gmail.com | Role: admin
+✅ Admin access granted
+✅ User authenticated: devamir121@gmail.com | Role: admin
+🔍 Checking admin access for: devamir121@gmail.com | Role: admin
+✅ Admin access granted

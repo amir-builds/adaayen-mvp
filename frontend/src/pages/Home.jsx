@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Navbar from '../components/Navbar';
+// Navbar is provided at the app root (in App.jsx). Do not import here to avoid duplicate navbars.
 import HeroSection from '../components/HeroSection';
 import FabricCarousel from '../components/FabricCarousel';
 import FilterBar from '../components/FilterBar';
@@ -7,9 +7,10 @@ import FeedGrid from '../components/Feed/FeedGrid';
 import FabricModal from '../components/FabricModal';
 import HowItWorks from '../components/HowItWorks';
 import Footer from '../components/Footer';
-import { fabricData } from '../data/fabricData';
+import { fabricData as localFabricData } from '../data/fabricData';
 import { posts } from '../data/postsData';
 import { createInterleavedFeed, filterFeed } from '../utils/observer';
+import { getAllFabrics } from '../utils/fabricAPI';
 
 export default function Home() {
   const [filter, setFilter] = useState('all');
@@ -20,8 +21,48 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const observerTarget = useRef(null);
 
+  // Fabrics state (start with local fallback)
+  const [fabrics, setFabrics] = useState(localFabricData);
+
+  // Fetch fabrics from API
+  useEffect(() => {
+    let mounted = true;
+    const fetchFabrics = async () => {
+      try {
+        const data = await getAllFabrics();
+        if (mounted && Array.isArray(data)) {
+          // Normalize backend fabric shape to UI-friendly shape
+          const mapped = data.map(f => ({
+            id: f._id || f.id,
+            name: f.name,
+            // UI expects an images array; use imageUrl as single image
+            images: f.images || (f.imageUrl ? [f.imageUrl] : []),
+            // price in UI is shown as string with currency
+            price: typeof f.price === 'number' ? `₹${f.price}` : f.price || '',
+            description: f.description || '',
+            fullDescription: f.description || f.fullDescription || '',
+            tags: f.tags || [],
+            specs: f.specs || { width: 'N/A', weight: 'N/A', care: 'N/A', composition: 'N/A' },
+            designs: f.designs || 0,
+            inStock: f.inStock !== undefined ? f.inStock : true,
+            color: f.color || '',
+            fabricType: f.fabricType || '',
+            imageUrl: f.imageUrl || (f.images && f.images[0]) || ''
+          }));
+
+          setFabrics(mapped);
+        }
+      } catch (err) {
+        // keep local fallback if API fails
+        console.warn('Failed to fetch fabrics, using local data', err.message || err);
+      }
+    };
+    fetchFabrics();
+    return () => { mounted = false; };
+  }, []);
+
   // Create interleaved feed
-  const interleavedFeed = createInterleavedFeed(fabricData, posts, 20);
+  const interleavedFeed = createInterleavedFeed(fabrics, posts, 20);
   const filteredFeed = filterFeed(interleavedFeed, filter);
   const visibleFeed = filteredFeed.slice(0, displayedItems);
 
@@ -100,8 +141,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
+  {/* Navbar is rendered by App; kept out of page to avoid duplicate navbars */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2 px-4 text-center text-sm">
         New fabrics in stock | Free delivery on orders above rupees 2000
       </div>
@@ -109,7 +149,7 @@ export default function Home() {
       <HeroSection />
       
       <FabricCarousel 
-        fabricData={fabricData} 
+        fabricData={fabrics} 
         onFabricClick={openFabricModal} 
       />
       

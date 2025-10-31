@@ -3,7 +3,24 @@ import Fabric from "../models/Fabric.js";
 // ✅ CREATE FABRIC (Admin only)
 export const createFabric = async (req, res) => {
   try {
-    const { name, description, price, fabricType, color, imageUrl, inStock } = req.body;
+    const { name, description, price, fabricType, color, inStock } = req.body;
+    // Support multiple uploaded images (req.files) while remaining backward-compatible
+    const uploadedFiles = req.files || (req.file ? [req.file] : []);
+
+    const images = uploadedFiles
+      .map((f) => f?.path || f?.secure_url || f?.url)
+      .filter(Boolean);
+
+    // Fallback: allow passing imageUrl in body (backwards compatibility)
+    if (images.length === 0 && req.body.imageUrl) {
+      images.push(req.body.imageUrl);
+    }
+
+    if (images.length === 0) {
+      return res.status(400).json({ message: 'At least one image is required. Please upload an image.' });
+    }
+
+    const imageUrl = images[0]; // primary image (for backward compatibility)
 
     const newFabric = new Fabric({
       name,
@@ -12,6 +29,7 @@ export const createFabric = async (req, res) => {
       fabricType,
       color,
       imageUrl,
+      images,
       inStock
     });
 
@@ -60,8 +78,24 @@ export const updateFabric = async (req, res) => {
       return res.status(404).json({ message: "Fabric not found" });
     }
 
-    // Update fields
-    Object.assign(fabric, req.body);
+    // If a new image was uploaded, update imageUrl accordingly
+    // If new images were uploaded, append them to the images array and update primary image if needed
+    const uploadedFiles = req.files || (req.file ? [req.file] : []);
+    const newImages = uploadedFiles.map((f) => f?.path || f?.secure_url || f?.url).filter(Boolean);
+    if (newImages.length > 0) {
+      fabric.images = Array.isArray(fabric.images) ? fabric.images.concat(newImages) : newImages;
+      // Ensure primary image exists
+      if (!fabric.imageUrl && fabric.images.length > 0) {
+        fabric.imageUrl = fabric.images[0];
+      }
+    }
+
+    // Update other fields from body
+    const updatable = ['name', 'description', 'price', 'fabricType', 'color', 'inStock'];
+    updatable.forEach((field) => {
+      if (req.body[field] !== undefined) fabric[field] = req.body[field];
+    });
+
     const updatedFabric = await fabric.save();
     
     res.json({
