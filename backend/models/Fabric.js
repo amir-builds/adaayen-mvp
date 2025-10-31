@@ -11,7 +11,8 @@ const fabricSchema = new mongoose.Schema(
       default: "Other",
     },
     color: { type: String },  // ✅ Added color field
-    imageUrl: { type: String, required: true },
+  imageUrl: { type: String }, // primary image (kept for backward compatibility)
+  images: { type: [String], default: [] }, // multiple images
     inStock: { type: Boolean, default: true },
 
     // ❌ Removed creator field (only admin manages fabrics)

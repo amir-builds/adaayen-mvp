@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ShoppingCart, User } from 'lucide-react';
 
 export default function Navbar() {
@@ -12,10 +13,11 @@ export default function Navbar() {
             </h1>
           </div>
           <div className="hidden md:flex space-x-8">
-            <a href="#" className="text-gray-700 hover:text-purple-600 font-medium">Home</a>
-            <a href="#" className="text-gray-700 hover:text-purple-600 font-medium">Shop Fabrics</a>
-            <a href="#" className="text-gray-700 hover:text-purple-600 font-medium">Creators</a>
-            <a href="#" className="text-gray-700 hover:text-purple-600 font-medium">About</a>
+            <Link to="/" className="text-gray-700 hover:text-purple-600 font-medium">Home</Link>
+            <Link to="/shop" className="text-gray-700 hover:text-purple-600 font-medium">Shop Fabrics</Link>
+            <Link to="/creators" className="text-gray-700 hover:text-purple-600 font-medium">Creators</Link>
+            <Link to="/about" className="text-gray-700 hover:text-purple-600 font-medium">About</Link>
+            {/* Admin route hidden from navbar intentionally; access via /admin and login there */}
           </div>
           <div className="flex items-center gap-3">
             <button className="p-2 hover:bg-gray-100 rounded-full transition">

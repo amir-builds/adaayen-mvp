@@ -1,5 +1,5 @@
+import 'dotenv/config'; // load .env early so other modules (like upload middleware) can read env vars
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
 import fabricRoutes from "./routes/fabricRoutes.js";
@@ -10,13 +10,13 @@ import adminRoutes from "./routes/admin.js";
 
 import { errorHandler } from "./middleware/errorHandler.js";
 
-dotenv.config();
 const app = express();
 
 connectDB();
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 // Routes
 app.use("/api/fabrics", fabricRoutes);
