@@ -49,6 +49,8 @@ router.put(
   "/:id",
   protect,
   adminOnly,
+  // Allow uploading new images when updating a fabric
+  upload.array('images', parseInt(process.env.MAX_FILES, 10) || 6),
   [
     body("name").optional().notEmpty().withMessage("Name cannot be empty"),
     body("price").optional().isNumeric().withMessage("Price must be a number"),

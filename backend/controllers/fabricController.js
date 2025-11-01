@@ -1,4 +1,5 @@
 import Fabric from "../models/Fabric.js";
+import { v2 as cloudinary } from 'cloudinary';
 
 // ✅ CREATE FABRIC (Admin only)
 export const createFabric = async (req, res) => {
@@ -7,9 +8,23 @@ export const createFabric = async (req, res) => {
     // Support multiple uploaded images (req.files) while remaining backward-compatible
     const uploadedFiles = req.files || (req.file ? [req.file] : []);
 
-    const images = uploadedFiles
-      .map((f) => f?.path || f?.secure_url || f?.url)
-      .filter(Boolean);
+    // Build both a simple images array (urls) for backward compat with frontend
+    // and an imagesMeta array containing { url, public_id } for Cloudinary management
+    const images = [];
+    const imagesMeta = [];
+
+    uploadedFiles.forEach((f) => {
+      const url = f?.path || f?.secure_url || f?.url;
+      const public_id = f?.filename || f?.public_id || f?.publicId || f?.public_id;
+      if (url) images.push(url);
+      imagesMeta.push({ url: url || null, public_id: public_id || null });
+    });
+
+    // If images array is empty but imagesMeta contains urls, populate images from imagesMeta
+    if (images.length === 0 && imagesMeta.length > 0) {
+      const fromMeta = imagesMeta.map(m => m.url).filter(Boolean);
+      if (fromMeta.length > 0) images.push(...fromMeta);
+    }
 
     // Fallback: allow passing imageUrl in body (backwards compatibility)
     if (images.length === 0 && req.body.imageUrl) {
@@ -30,6 +45,7 @@ export const createFabric = async (req, res) => {
       color,
       imageUrl,
       images,
+      imagesMeta,
       inStock
     });
 
@@ -81,9 +97,27 @@ export const updateFabric = async (req, res) => {
     // If a new image was uploaded, update imageUrl accordingly
     // If new images were uploaded, append them to the images array and update primary image if needed
     const uploadedFiles = req.files || (req.file ? [req.file] : []);
-    const newImages = uploadedFiles.map((f) => f?.path || f?.secure_url || f?.url).filter(Boolean);
-    if (newImages.length > 0) {
-      fabric.images = Array.isArray(fabric.images) ? fabric.images.concat(newImages) : newImages;
+    const newUrls = [];
+    const newMeta = [];
+
+    uploadedFiles.forEach((f) => {
+      const url = f?.path || f?.secure_url || f?.url;
+      const public_id = f?.filename || f?.public_id || f?.publicId || f?.public_id;
+      if (url) newUrls.push(url);
+      newMeta.push({ url: url || null, public_id: public_id || null });
+    });
+
+    // If no explicit URLs but imagesMeta contains urls, derive newUrls
+    if (newUrls.length === 0 && newMeta.length > 0) {
+      const fromMeta = newMeta.map(m => m.url).filter(Boolean);
+      if (fromMeta.length > 0) newUrls.push(...fromMeta);
+    }
+
+    if (newUrls.length > 0) {
+      // append to existing images (legacy could be array of strings)
+      fabric.images = Array.isArray(fabric.images) ? fabric.images.concat(newUrls) : newUrls;
+      // append to imagesMeta (if schema previously lacked imagesMeta, this will create)
+      fabric.imagesMeta = Array.isArray(fabric.imagesMeta) ? fabric.imagesMeta.concat(newMeta) : newMeta;
       // Ensure primary image exists
       if (!fabric.imageUrl && fabric.images.length > 0) {
         fabric.imageUrl = fabric.images[0];
@@ -114,6 +148,25 @@ export const deleteFabric = async (req, res) => {
     
     if (!fabric) {
       return res.status(404).json({ message: "Fabric not found" });
+    }
+
+    // If imagesMeta exists, attempt to remove each file from Cloudinary
+    try {
+      const toDelete = (fabric.imagesMeta || []).map((m) => m?.public_id).filter(Boolean);
+      if (toDelete.length > 0) {
+        await Promise.all(
+          toDelete.map(async (pid) => {
+            try {
+              await cloudinary.uploader.destroy(pid);
+            } catch (err) {
+              // log and continue
+              console.error('Cloudinary delete failed for', pid, err?.message || err);
+            }
+          })
+        );
+      }
+    } catch (err) {
+      console.error('Error while deleting cloudinary images for fabric', req.params.id, err?.message || err);
     }
 
     await Fabric.deleteOne({ _id: req.params.id });

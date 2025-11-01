@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Heart, Sparkles } from 'lucide-react';
 
 // Temporary fabric images until backend implementation
@@ -12,6 +12,9 @@ const fabricImages = [
 ];
 
 export default function FabricCard({ fabric, onClick }) {
+  const [selected, setSelected] = useState(0);
+  const imgs = Array.isArray(fabric.images) && fabric.images.length > 0 ? fabric.images : (fabric.imageUrl ? [fabric.imageUrl] : [fabricImages[0]]);
+
   return (
     <div 
       className="bg-white overflow-hidden group cursor-pointer"
@@ -19,7 +22,7 @@ export default function FabricCard({ fabric, onClick }) {
     >
       <div className="h-80 relative overflow-hidden">
         <img 
-          src={fabric.imageUrl || fabricImages[0]} 
+          src={imgs[selected] || fabricImages[0]} 
           alt={fabric.name}
           className="w-full h-full object-cover"
           onError={(e) => {
@@ -37,6 +40,16 @@ export default function FabricCard({ fabric, onClick }) {
         <button className="absolute top-3 right-3 w-9 h-9 bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:scale-110">
           <Heart size={18} className="text-gray-700" />
         </button>
+        {/* Thumbnails row (show when multiple images) */}
+        {imgs.length > 1 && (
+          <div className="absolute bottom-3 left-3 right-3 flex gap-2 justify-center">
+            {imgs.map((src, idx) => (
+              <button key={idx} onClick={(ev) => { ev.stopPropagation(); setSelected(idx); }} className={`w-10 h-10 rounded overflow-hidden border ${selected===idx? 'ring-2 ring-purple-500': 'ring-0'}`}>
+                <img src={src} alt={`thumb-${idx}`} className="w-full h-full object-cover" onError={(e)=>{e.target.onerror=null;e.target.src=fabricImages[0]}} />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="py-3">
