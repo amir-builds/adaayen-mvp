@@ -58,7 +58,30 @@ export default function Home() {
       }
     };
     fetchFabrics();
-    return () => { mounted = false; };
+
+    // Listen for fabrics created in admin and prepend to list
+    const onCreated = (e) => {
+      const f = e?.detail;
+      if (!f) return;
+      const mapped = {
+        id: f._id || f.id,
+        name: f.name,
+        images: f.images || (f.imageUrl ? [f.imageUrl] : []),
+        price: typeof f.price === 'number' ? `₹${f.price}` : f.price || '',
+        description: f.description || '',
+        fullDescription: f.description || f.fullDescription || '',
+        tags: f.tags || [],
+        specs: f.specs || { width: 'N/A', weight: 'N/A', care: 'N/A', composition: 'N/A' },
+        designs: f.designs || 0,
+        inStock: f.inStock !== undefined ? f.inStock : true,
+        color: f.color || '',
+        fabricType: f.fabricType || '',
+        imageUrl: f.imageUrl || (f.images && f.images[0]) || ''
+      };
+      setFabrics(prev => [mapped, ...prev]);
+    };
+    window.addEventListener('fabric:created', onCreated);
+    return () => { mounted = false; window.removeEventListener('fabric:created', onCreated); };
   }, []);
 
   // Create interleaved feed

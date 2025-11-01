@@ -99,6 +99,16 @@ const FabricUploadForm = () => {
       setImages([]);
       setPreview([]);
       
+      // Notify app that a new fabric was created so feeds can refresh
+      try {
+        const created = response.data?.fabric;
+        if (created) {
+          window.dispatchEvent(new CustomEvent('fabric:created', { detail: created }));
+        }
+      } catch (e) {
+        // ignore
+      }
+
       // Show success message or redirect
       alert('Fabric added successfully!');
     } catch (err) {
