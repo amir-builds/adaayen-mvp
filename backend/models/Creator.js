@@ -10,7 +10,7 @@ const creatorSchema = new mongoose.Schema(
     profilePic: { type: String, default: "" },
     role: { 
       type: String, 
-      enum: ["creator", "admin"], 
+      enum: ["creator", "admin", "customer"], 
       default: "creator" 
     }
     // ❌ No fabrics array needed (creators don't add fabrics)
