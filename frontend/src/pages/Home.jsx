@@ -11,6 +11,8 @@ import { fabricData as localFabricData } from '../data/fabricData';
 import { posts } from '../data/postsData';
 import { createInterleavedFeed, filterFeed } from '../utils/observer';
 import { getAllFabrics } from '../utils/fabricAPI';
+import api from '../utils/api';
+import { Star } from 'lucide-react';
 
 export default function Home() {
   const [filter, setFilter] = useState('all');
@@ -19,6 +21,8 @@ export default function Home() {
   const [postImageIndices, setPostImageIndices] = useState({});
   const [displayedItems, setDisplayedItems] = useState(8);
   const [loading, setLoading] = useState(false);
+  const [featuredPosts, setFeaturedPosts] = useState([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
   const observerTarget = useRef(null);
 
   // Fabrics state (start with local fallback)
@@ -59,6 +63,20 @@ export default function Home() {
     };
     fetchFabrics();
 
+    // Fetch featured posts
+    const fetchFeaturedPosts = async () => {
+      try {
+        const res = await api.get('/posts?featured=true');
+        const data = Array.isArray(res.data) ? res.data : res.data.posts || [];
+        setFeaturedPosts(data.slice(0, 6)); // Show max 6 featured posts
+      } catch (err) {
+        console.warn('Failed to fetch featured posts', err.message || err);
+      } finally {
+        setFeaturedLoading(false);
+      }
+    };
+    fetchFeaturedPosts();
+
     // Listen for fabrics created in admin and prepend to list
     const onCreated = (e) => {
       const f = e?.detail;
@@ -84,8 +102,37 @@ export default function Home() {
     return () => { mounted = false; window.removeEventListener('fabric:created', onCreated); };
   }, []);
 
-  // Create interleaved feed
-  const interleavedFeed = createInterleavedFeed(fabrics, posts, 20);
+  // Fetch featured posts from API
+  useEffect(() => {
+    let mounted = true;
+    const fetchFeaturedPosts = async () => {
+      try {
+        const res = await api.get('/posts?featured=true');
+        const data = res.data || [];
+        if (mounted && Array.isArray(data)) {
+          // Map posts to include type identifier
+          const mappedPosts = data.map(p => ({
+            ...p,
+            type: 'post',
+            id: p._id,
+            images: p.images || (p.imageUrl ? [p.imageUrl] : []),
+            isFeatured: true
+          }));
+          setFeaturedPosts(mappedPosts);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch featured posts', err.message || err);
+      } finally {
+        setFeaturedLoading(false);
+      }
+    };
+    fetchFeaturedPosts();
+    return () => { mounted = false; };
+  }, []);
+
+  // Create interleaved feed with featured posts at the top
+  const allPosts = [...featuredPosts, ...posts];
+  const interleavedFeed = createInterleavedFeed(fabrics, allPosts, 20);
   const filteredFeed = filterFeed(interleavedFeed, filter);
   const visibleFeed = filteredFeed.slice(0, displayedItems);
 
@@ -201,9 +248,7 @@ export default function Home() {
         onPrevImage={prevImage}
         onImageSelect={setCurrentImageIndex}
       />
-
       <HowItWorks />
-      
       <Footer />
     </div>
   );

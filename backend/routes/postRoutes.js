@@ -12,6 +12,7 @@ import {
 } from "../controllers/postController.js";
 
 import { protect, adminOnly } from "../middleware/auth.js";
+import upload from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -22,8 +23,8 @@ router.get("/creator/:creatorId", getPostsByCreator); // Get all posts by a spec
 router.get("/:id", getPostById);              // Get single post by ID
 
 // 🔐 Protected routes (only logged-in users)
-router.post("/", protect, createPost);        // Create a new post
-router.put("/:id", protect, updatePost);      // Update own post
+router.post("/", protect, upload.array('images', parseInt(process.env.MAX_FILES, 10) || 6), createPost);        // Create a new post
+router.put("/:id", protect, upload.array('images', parseInt(process.env.MAX_FILES, 10) || 6), updatePost);      // Update own post
 router.delete("/:id", protect, deletePost);   // Delete own post
 
 // 🛠️ Admin-only route to mark/unmark posts as featured
