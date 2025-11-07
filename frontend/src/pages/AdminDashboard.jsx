@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
+import { Star } from 'lucide-react';
 
 // Reusable form for create & update
 function FabricForm({ initial = {}, onCancel, onSaved }) {
@@ -72,10 +73,14 @@ function FabricForm({ initial = {}, onCancel, onSaved }) {
 
 export default function AdminDashboard() {
   const [fabrics, setFabrics] = useState([]);
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(null);
   const [showNew, setShowNew] = useState(false);
+  const [activeTab, setActiveTab] = useState('fabrics');
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [postsError, setPostsError] = useState(null);
 
   const fetchFabrics = async () => {
     setLoading(true);
@@ -91,7 +96,29 @@ export default function AdminDashboard() {
     }
   };
 
-  useEffect(() => { fetchFabrics(); }, []);
+  const fetchPosts = async () => {
+    setPostsLoading(true);
+    try {
+      const res = await api.get('/admin/posts');
+      const data = res.data.posts || res.data || [];
+      setPosts(Array.isArray(data) ? data : []);
+      setPostsError(null);
+    } catch (err) {
+      setPostsError(err.response?.data?.message || err.message || 'Failed to load posts');
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFabrics();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'posts') {
+      fetchPosts();
+    }
+  }, [activeTab]);
 
   const onDelete = async (id) => {
     if (!confirm('Delete this fabric?')) return;
@@ -107,64 +134,181 @@ export default function AdminDashboard() {
     setFabrics((prev) => {
       const idx = prev.findIndex((p) => p._id === fabric._id);
       if (idx >= 0) {
-        const copy = [...prev]; copy[idx] = fabric; return copy;
+        const copy = [...prev];
+        copy[idx] = fabric;
+        return copy;
       }
       return [fabric, ...prev];
     });
     setEditing(null);
     setShowNew(false);
-    try { window.dispatchEvent(new CustomEvent('fabric:created', { detail: fabric })); } catch (e) { /* ignore */ }
+    try {
+      window.dispatchEvent(new CustomEvent('fabric:created', { detail: fabric }));
+    } catch (e) {
+      /* ignore */
+    }
+  };
+
+  const toggleFeaturePost = async (postId, currentStatus) => {
+    try {
+      await api.patch(`/admin/posts/${postId}/feature`, { isFeatured: !currentStatus });
+      setPosts((prev) =>
+        prev.map((p) => (p._id === postId ? { ...p, isFeatured: !currentStatus } : p))
+      );
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update post');
+    }
+  };
+
+  const deletePost = async (postId) => {
+    if (!confirm('Delete this post?')) return;
+    try {
+      await api.delete(`/admin/posts/${postId}`);
+      setPosts((prev) => prev.filter((p) => p._id !== postId));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete post');
+    }
   };
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Admin Dashboard — Fabrics</h1>
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         <div className="flex gap-2">
-          <button onClick={() => { setEditing(null); setShowNew(true); }} className="bg-green-600 text-white px-3 py-2 rounded">Add Fabric</button>
-          <button onClick={fetchFabrics} className="px-3 py-2 border rounded">Refresh</button>
+          {activeTab === 'fabrics' && (
+            <button onClick={() => { setEditing(null); setShowNew(true); }} className="bg-green-600 text-white px-3 py-2 rounded">Add Fabric</button>
+          )}
+          <button onClick={activeTab === 'fabrics' ? fetchFabrics : fetchPosts} className="px-3 py-2 border rounded">Refresh</button>
         </div>
       </div>
 
-      {showNew && (
-        <div className="mb-6 bg-white p-4 rounded shadow">
-          <h2 className="font-semibold mb-2">Add new fabric</h2>
-          <FabricForm initial={{}} onCancel={() => setShowNew(false)} onSaved={onSaved} />
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="flex gap-4 mb-6 border-b">
+        <button
+          onClick={() => setActiveTab('fabrics')}
+          className={`pb-2 px-4 font-semibold transition ${activeTab === 'fabrics' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-600 hover:text-gray-900'}`}
+        >
+          Fabrics
+        </button>
+        <button
+          onClick={() => setActiveTab('posts')}
+          className={`pb-2 px-4 font-semibold transition ${activeTab === 'posts' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-600 hover:text-gray-900'}`}
+        >
+          Posts
+        </button>
+      </div>
 
-      {editing && (
-        <div className="mb-6 bg-white p-4 rounded shadow">
-          <h2 className="font-semibold mb-2">Edit fabric</h2>
-          <FabricForm initial={editing} onCancel={() => setEditing(null)} onSaved={onSaved} />
-        </div>
-      )}
-
-      {loading ? (
-        <div>Loading fabrics...</div>
-      ) : error ? (
-        <div className="text-red-600">{error}</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {fabrics.map((f) => (
-            <div key={f._id} className="bg-white p-4 rounded shadow">
-              <div className="h-40 bg-gray-100 rounded mb-3 flex items-center justify-center">
-                {f.images && f.images[0] ? (
-                  <img src={f.images[0]} alt={f.name} className="max-h-full max-w-full object-contain" />
-                ) : (
-                  <div className="text-gray-400">No image</div>
-                )}
-              </div>
-              <h3 className="font-semibold">{f.name}</h3>
-              <div className="text-sm text-gray-600">{f.fabricType} • {f.color}</div>
-              <div className="mt-2 font-medium">₹{f.price}</div>
-              <div className="flex gap-2 mt-4">
-                <button onClick={() => { setEditing(f); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="px-3 py-1 border rounded">Edit</button>
-                <button onClick={() => onDelete(f._id)} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
-              </div>
+      {/* FABRICS TAB */}
+      {activeTab === 'fabrics' && (
+        <>
+          {showNew && (
+            <div className="mb-6 bg-white p-4 rounded shadow">
+              <h2 className="font-semibold mb-2">Add new fabric</h2>
+              <FabricForm initial={{}} onCancel={() => setShowNew(false)} onSaved={onSaved} />
             </div>
-          ))}
-        </div>
+          )}
+
+          {editing && (
+            <div className="mb-6 bg-white p-4 rounded shadow">
+              <h2 className="font-semibold mb-2">Edit fabric</h2>
+              <FabricForm initial={editing} onCancel={() => setEditing(null)} onSaved={onSaved} />
+            </div>
+          )}
+
+          {loading ? (
+            <div>Loading fabrics...</div>
+          ) : error ? (
+            <div className="text-red-600">{error}</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {fabrics.map((f) => (
+                <div key={f._id} className="bg-white p-4 rounded shadow">
+                  <div className="h-40 bg-gray-100 rounded mb-3 flex items-center justify-center">
+                    {f.images && f.images[0] ? (
+                      <img src={f.images[0]} alt={f.name} className="max-h-full max-w-full object-contain" />
+                    ) : (
+                      <div className="text-gray-400">No image</div>
+                    )}
+                  </div>
+                  <h3 className="font-semibold">{f.name}</h3>
+                  <div className="text-sm text-gray-600">{f.fabricType} • {f.color}</div>
+                  <div className="mt-2 font-medium">₹{f.price}</div>
+                  <div className="flex gap-2 mt-4">
+                    <button onClick={() => { setEditing(f); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="px-3 py-1 border rounded">Edit</button>
+                    <button onClick={() => onDelete(f._id)} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* POSTS TAB */}
+      {activeTab === 'posts' && (
+        <>
+          {postsLoading ? (
+            <div>Loading posts...</div>
+          ) : postsError ? (
+            <div className="text-red-600">{postsError}</div>
+          ) : (
+            <div className="space-y-4">
+              {posts.length === 0 ? (
+                <div className="text-gray-600">No posts found</div>
+              ) : (
+                posts.map((post) => (
+                  <div key={post._id} className="bg-white p-4 rounded shadow hover:shadow-lg transition">
+                    <div className="flex gap-4">
+                      {/* Post image */}
+                      <div className="w-24 h-24 bg-gray-100 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
+                        {post.images && post.images[0] ? (
+                          <img src={post.images[0]} alt={post.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-gray-400 text-xs">No image</div>
+                        )}
+                      </div>
+
+                      {/* Post info */}
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{post.title}</h3>
+                        <p className="text-sm text-gray-600 mt-1">By {post.creator?.name || 'Unknown'}</p>
+                        <p className="text-sm text-gray-600">{post.description?.substring(0, 100)}...</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">{post.images?.length || 0} images</span>
+                          {post.tags && post.tags.length > 0 && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">{post.tags.join(', ')}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex flex-col gap-2 justify-center items-end">
+                        <button
+                          onClick={() => toggleFeaturePost(post._id, post.isFeatured)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded transition ${
+                            post.isFeatured
+                              ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                          title={post.isFeatured ? 'Remove from featured' : 'Add to featured'}
+                        >
+                          <Star size={16} fill={post.isFeatured ? 'currentColor' : 'none'} />
+                          <span className="text-sm font-semibold">{post.isFeatured ? 'Featured' : 'Feature'}</span>
+                        </button>
+                        <button
+                          onClick={() => deletePost(post._id)}
+                          className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

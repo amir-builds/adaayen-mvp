@@ -54,6 +54,11 @@ export default function Navbar() {
             <Link to="/" className="text-gray-700 hover:text-purple-600 font-medium">Home</Link>
             <Link to="/shop" className="text-gray-700 hover:text-purple-600 font-medium">Shop Fabrics</Link>
             <Link to="/creators" className="text-gray-700 hover:text-purple-600 font-medium">Creators</Link>
+            {user && user.role === 'creator' && (
+              <Link to="/creator/dashboard" className="text-purple-600 hover:text-purple-700 font-semibold">
+                Dashboard
+              </Link>
+            )}
             <Link to="/about" className="text-gray-700 hover:text-purple-600 font-medium">About</Link>
             {/* Admin route hidden from navbar intentionally; access via /admin and login there */}
           </div>
@@ -78,7 +83,23 @@ export default function Navbar() {
 
                 {open && (
                   <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow py-2">
-                    <Link to="/profile" className="block px-4 py-2 text-sm hover:bg-gray-50">Profile</Link>
+                    {user.role === 'creator' && (
+                      <Link 
+                        to="/creator/dashboard" 
+                        className="block px-4 py-2 text-sm hover:bg-gray-50 text-purple-600 font-medium"
+                      >
+                        Creator Dashboard
+                      </Link>
+                    )}
+                    {user.role === 'admin' && (
+                      <Link 
+                        to="/admin" 
+                        className="block px-4 py-2 text-sm hover:bg-gray-50 text-purple-600 font-medium"
+                      >
+                        Admin Dashboard
+                      </Link>
+                    )}
+                    <Link to="/profile" className="block px-4 py-2 text-sm hover:bg-gray-50">My Profile</Link>
                     <button onClick={onLogout} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"><LogOut size={16} />Logout</button>
                   </div>
                 )}
