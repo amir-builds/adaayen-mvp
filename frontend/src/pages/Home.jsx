@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 // Navbar is provided at the app root (in App.jsx). Do not import here to avoid duplicate navbars.
 import HeroSection from '../components/HeroSection';
 import FabricCarousel from '../components/FabricCarousel';
@@ -16,6 +17,7 @@ import api from '../utils/api';
 import { Star } from 'lucide-react';
 
 export default function Home() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
   const [selectedFabric, setSelectedFabric] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
@@ -181,16 +183,9 @@ export default function Home() {
   };
 
   const viewFabricDesigns = (fabric) => {
-    // Close modal and filter feed by this fabric
-    setSelectedFabric(null);
-    setFilter(fabric.id || fabric._id);
-    // Scroll to feed section
-    setTimeout(() => {
-      const feedSection = document.querySelector('section.py-8');
-      if (feedSection) {
-        feedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
+    // Navigate to dedicated fabric designs page
+    const fabricId = fabric.id || fabric._id;
+    navigate(`/fabric/${fabricId}/designs`);
   };
 
   const nextImage = () => {
