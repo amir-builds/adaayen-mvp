@@ -12,10 +12,14 @@ cloudinary.config({
 // Configure storage
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'adaayen/fabrics',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
+  params: (req, file) => {
+    // Dynamically set folder based on route
+    const folder = req.baseUrl?.includes('posts') ? 'adaayen/posts' : 'adaayen/fabrics';
+    return {
+      folder: folder,
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
+    };
   }
 });
 

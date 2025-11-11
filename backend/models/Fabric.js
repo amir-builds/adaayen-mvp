@@ -7,7 +7,24 @@ const fabricSchema = new mongoose.Schema(
     price: { type: Number, required: true },
     fabricType: {  // Changed from 'category' to 'fabricType'
       type: String,
-      enum: ["Cotton", "Silk", "Linen", "Denim", "Wool", "Polyester", "Other"],
+      enum: [
+        "Cotton", 
+        "Silk", 
+        "Linen", 
+        "Denim", 
+        "Wool", 
+        "Polyester", 
+        "Net",
+        "Velvet",
+        "Chiffon",
+        "Georgette",
+        "Crepe",
+        "Satin",
+        "Organza",
+        "Rayon",
+        "Muslin",
+        "Other"
+      ],
       default: "Other",
     },
     color: { type: String },  // Added color field

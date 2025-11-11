@@ -21,8 +21,8 @@ export default function Home() {
   const [postImageIndices, setPostImageIndices] = useState({});
   const [displayedItems, setDisplayedItems] = useState(8);
   const [loading, setLoading] = useState(false);
-  const [featuredPosts, setFeaturedPosts] = useState([]);
-  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [apiPosts, setApiPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
   const observerTarget = useRef(null);
 
   // Fabrics state (start with local fallback)
@@ -37,7 +37,8 @@ export default function Home() {
         if (mounted && Array.isArray(data)) {
           // Normalize backend fabric shape to UI-friendly shape
           const mapped = data.map(f => ({
-            id: f._id || f.id,
+            _id: f._id, // Keep original MongoDB _id for cart/API operations
+            id: f._id || f.id, // Also provide id for compatibility
             name: f.name,
             // UI expects an images array; use imageUrl as single image
             images: f.images || (f.imageUrl ? [f.imageUrl] : []),
@@ -63,25 +64,12 @@ export default function Home() {
     };
     fetchFabrics();
 
-    // Fetch featured posts
-    const fetchFeaturedPosts = async () => {
-      try {
-        const res = await api.get('/posts?featured=true');
-        const data = Array.isArray(res.data) ? res.data : res.data.posts || [];
-        setFeaturedPosts(data.slice(0, 6)); // Show max 6 featured posts
-      } catch (err) {
-        console.warn('Failed to fetch featured posts', err.message || err);
-      } finally {
-        setFeaturedLoading(false);
-      }
-    };
-    fetchFeaturedPosts();
-
     // Listen for fabrics created in admin and prepend to list
     const onCreated = (e) => {
       const f = e?.detail;
       if (!f) return;
       const mapped = {
+        _id: f._id, // Keep original MongoDB _id
         id: f._id || f.id,
         name: f.name,
         images: f.images || (f.imageUrl ? [f.imageUrl] : []),
@@ -102,36 +90,41 @@ export default function Home() {
     return () => { mounted = false; window.removeEventListener('fabric:created', onCreated); };
   }, []);
 
-  // Fetch featured posts from API
+  // Fetch all posts from API
   useEffect(() => {
     let mounted = true;
-    const fetchFeaturedPosts = async () => {
+    const fetchPosts = async () => {
       try {
-        const res = await api.get('/posts?featured=true');
+        const res = await api.get('/posts');
         const data = res.data || [];
         if (mounted && Array.isArray(data)) {
-          // Map posts to include type identifier
+          // Map posts from API
           const mappedPosts = data.map(p => ({
             ...p,
             type: 'post',
             id: p._id,
             images: p.images || (p.imageUrl ? [p.imageUrl] : []),
-            isFeatured: true
+            creator: typeof p.creator === 'string' ? p.creator : p.creator?.name || 'Unknown'
           }));
-          setFeaturedPosts(mappedPosts);
+          setApiPosts(mappedPosts);
         }
       } catch (err) {
-        console.warn('Failed to fetch featured posts', err.message || err);
+        console.warn('Failed to fetch posts from API, using local data', err.message || err);
+        // Fallback to local data if API fails
+        setApiPosts(posts);
       } finally {
-        setFeaturedLoading(false);
+        setPostsLoading(false);
       }
     };
-    fetchFeaturedPosts();
+    fetchPosts();
     return () => { mounted = false; };
   }, []);
 
-  // Create interleaved feed with featured posts at the top
-  const allPosts = [...featuredPosts, ...posts];
+  // Create interleaved feed: Featured posts first, then regular posts
+  const featuredPosts = apiPosts.filter(p => p.isFeatured);
+  const regularPosts = apiPosts.filter(p => !p.isFeatured);
+  const allPosts = [...featuredPosts, ...regularPosts];
+  
   const interleavedFeed = createInterleavedFeed(fabrics, allPosts, 20);
   const filteredFeed = filterFeed(interleavedFeed, filter);
   const visibleFeed = filteredFeed.slice(0, displayedItems);
@@ -169,6 +162,8 @@ export default function Home() {
 
   // Fabric modal handlers
   const openFabricModal = (fabric) => {
+    console.log('Opening fabric modal with:', fabric);
+    console.log('Fabric ID:', fabric?._id || fabric?.id);
     setSelectedFabric(fabric);
     setCurrentImageIndex(0);
   };
@@ -176,6 +171,19 @@ export default function Home() {
   const closeFabricModal = () => {
     setSelectedFabric(null);
     setCurrentImageIndex(0);
+  };
+
+  const viewFabricDesigns = (fabric) => {
+    // Close modal and filter feed by this fabric
+    setSelectedFabric(null);
+    setFilter(fabric.id || fabric._id);
+    // Scroll to feed section
+    setTimeout(() => {
+      const feedSection = document.querySelector('section.py-8');
+      if (feedSection) {
+        feedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   const nextImage = () => {
@@ -247,6 +255,7 @@ export default function Home() {
         onNextImage={nextImage}
         onPrevImage={prevImage}
         onImageSelect={setCurrentImageIndex}
+        onViewAll={viewFabricDesigns}
       />
       <HowItWorks />
       <Footer />

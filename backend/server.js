@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import creatorRoutes from "./routes/creatorRoutes.js";
 import adminRoutes from "./routes/admin.js";
+import cartRoutes from "./routes/cartRoutes.js";
 
 import { errorHandler } from "./middleware/errorHandler.js";
 
@@ -23,7 +24,8 @@ app.use("/api/fabrics", fabricRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/creators", creatorRoutes);
-app.use("/api/admin", adminRoutes); // Add this line
+app.use("/api/admin", adminRoutes);
+app.use("/api/cart", cartRoutes);
 
 app.use(errorHandler);
 app.get("/", (req, res) => {

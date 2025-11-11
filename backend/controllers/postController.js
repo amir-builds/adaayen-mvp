@@ -1,10 +1,26 @@
 import Post from "../models/Post.js";
 import { v2 as cloudinary } from 'cloudinary';
 
-// GET all posts
+// GET all posts (with optional fabric filter)
 export const getAllPosts = async (req, res) => {
   try {
-    const posts = await Post.find().populate("creator", "name email profilePic");
+    const { fabric, featured } = req.query;
+    const query = {};
+    
+    // Filter by fabric if provided
+    if (fabric) {
+      query.fabric = fabric;
+    }
+    
+    // Filter by featured status if provided
+    if (featured !== undefined) {
+      query.isFeatured = featured === 'true';
+    }
+    
+    const posts = await Post.find(query)
+      .populate("creator", "name email profilePic")
+      .populate("fabric", "name fabricType color price")
+      .sort({ createdAt: -1 });
     res.json(posts);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -26,7 +42,9 @@ export const getFeaturedPosts = async (req, res) => {
 // GET single post
 export const getPostById = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate("creator", "name email profilePic");
+    const post = await Post.findById(req.params.id)
+      .populate("creator", "name email profilePic")
+      .populate("fabric", "name fabricType color price");
     if (!post) return res.status(404).json({ message: "Post not found" });
     res.json(post);
   } catch (err) {
@@ -36,7 +54,7 @@ export const getPostById = async (req, res) => {
 
 // CREATE post
 export const createPost = async (req, res) => {
-  const { title, description, fabricType, fabricLink, imageUrl, price } = req.body;
+  const { title, description, fabric, fabricType, fabricLink, imageUrl, price } = req.body;
 
   try {
     // Handle multiple uploaded images (similar to fabric controller)
@@ -74,6 +92,7 @@ export const createPost = async (req, res) => {
       creator: req.user.id,
       title,
       description,
+      fabric: fabric || null, // New: fabric reference
       fabricType,
       fabricLink,
       imageUrl: primaryImageUrl,
@@ -84,7 +103,9 @@ export const createPost = async (req, res) => {
     });
 
     const savedPost = await newPost.save();
-    const populated = await savedPost.populate("creator", "name email profilePic");
+    const populated = await savedPost
+      .populate("creator", "name email profilePic")
+      .populate("fabric", "name fabricType color price");
     res.status(201).json(populated);
   } catch (err) {
     res.status(400).json({ message: err.message });
