@@ -89,12 +89,9 @@ export default function FabricModal({
     // Validate fabric ID (support both _id from backend and id from UI)
     const fabricId = fabric._id || fabric.id;
     if (!fabric || !fabricId) {
-      console.error('Invalid fabric object:', fabric);
       showError('Invalid fabric. Please try again.');
       return;
     }
-
-    console.log('Adding to cart - Fabric ID:', fabricId, 'Quantity:', quantity);
 
     setAddingToCart(true);
     try {
@@ -107,7 +104,7 @@ export default function FabricModal({
         showError(result.message || 'Failed to add to cart. Please try again.');
       }
     } catch (err) {
-      console.error('Add to cart error:', err);
+      console.error('Cart error:', err.message);
       showError(err.message || 'Unable to add to cart. Please try again.');
     } finally {
       setAddingToCart(false);

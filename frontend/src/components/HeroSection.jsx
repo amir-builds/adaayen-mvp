@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 
 export default function HeroSection() {
@@ -18,13 +19,19 @@ export default function HeroSection() {
             Buy quality fabrics. Get inspired by creators. Bring your vision to life.
           </p>
           <div className="flex flex-wrap gap-4">
-            <button className="bg-white text-purple-600 px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition flex items-center gap-2">
+            <Link 
+              to="/shop"
+              className="bg-white text-purple-600 px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition flex items-center gap-2"
+            >
               <ShoppingBag size={18} />
               Shop Fabrics
-            </button>
-            <button className="border-2 border-white text-white px-6 py-2 rounded-full font-semibold hover:bg-white hover:text-purple-600 transition">
+            </Link>
+            <Link 
+              to="/creators"
+              className="border-2 border-white text-white px-6 py-2 rounded-full font-semibold hover:bg-white hover:text-purple-600 transition"
+            >
               Browse Designs
-            </button>
+            </Link>
           </div>
         </div>
       </div>

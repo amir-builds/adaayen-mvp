@@ -5,6 +5,7 @@ import FabricCarousel from '../components/FabricCarousel';
 import FilterBar from '../components/FilterBar';
 import FeedGrid from '../components/Feed/FeedGrid';
 import FabricModal from '../components/FabricModal';
+import PostModal from '../components/PostModal';
 import HowItWorks from '../components/HowItWorks';
 import Footer from '../components/Footer';
 import { fabricData as localFabricData } from '../data/fabricData';
@@ -17,6 +18,7 @@ import { Star } from 'lucide-react';
 export default function Home() {
   const [filter, setFilter] = useState('all');
   const [selectedFabric, setSelectedFabric] = useState(null);
+  const [selectedPost, setSelectedPost] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [postImageIndices, setPostImageIndices] = useState({});
   const [displayedItems, setDisplayedItems] = useState(8);
@@ -98,13 +100,14 @@ export default function Home() {
         const res = await api.get('/posts');
         const data = res.data || [];
         if (mounted && Array.isArray(data)) {
-          // Map posts from API
+          // Map posts from API - preserve full creator object for modal
           const mappedPosts = data.map(p => ({
             ...p,
             type: 'post',
             id: p._id,
             images: p.images || (p.imageUrl ? [p.imageUrl] : []),
-            creator: typeof p.creator === 'string' ? p.creator : p.creator?.name || 'Unknown'
+            // Keep full creator object, don't convert to string
+            creator: p.creator
           }));
           setApiPosts(mappedPosts);
         }
@@ -120,12 +123,10 @@ export default function Home() {
     return () => { mounted = false; };
   }, []);
 
-  // Create interleaved feed: Featured posts first, then regular posts
+  // Show only featured posts on homepage
   const featuredPosts = apiPosts.filter(p => p.isFeatured);
-  const regularPosts = apiPosts.filter(p => !p.isFeatured);
-  const allPosts = [...featuredPosts, ...regularPosts];
   
-  const interleavedFeed = createInterleavedFeed(fabrics, allPosts, 20);
+  const interleavedFeed = createInterleavedFeed(fabrics, featuredPosts, 20);
   const filteredFeed = filterFeed(interleavedFeed, filter);
   const visibleFeed = filteredFeed.slice(0, displayedItems);
 
@@ -162,8 +163,6 @@ export default function Home() {
 
   // Fabric modal handlers
   const openFabricModal = (fabric) => {
-    console.log('Opening fabric modal with:', fabric);
-    console.log('Fabric ID:', fabric?._id || fabric?.id);
     setSelectedFabric(fabric);
     setCurrentImageIndex(0);
   };
@@ -171,6 +170,14 @@ export default function Home() {
   const closeFabricModal = () => {
     setSelectedFabric(null);
     setCurrentImageIndex(0);
+  };
+
+  const openPostModal = (post) => {
+    setSelectedPost(post);
+  };
+
+  const closePostModal = () => {
+    setSelectedPost(null);
   };
 
   const viewFabricDesigns = (fabric) => {
@@ -242,6 +249,7 @@ export default function Home() {
         displayedItems={displayedItems}
         filteredFeedLength={filteredFeed.length}
         onFabricClick={openFabricModal}
+        onPostClick={openPostModal}
         postImageIndices={postImageIndices}
         onNextPostImage={nextPostImage}
         onPrevPostImage={prevPostImage}
@@ -257,6 +265,12 @@ export default function Home() {
         onImageSelect={setCurrentImageIndex}
         onViewAll={viewFabricDesigns}
       />
+      
+      <PostModal
+        post={selectedPost}
+        onClose={closePostModal}
+      />
+      
       <HowItWorks />
       <Footer />
     </div>

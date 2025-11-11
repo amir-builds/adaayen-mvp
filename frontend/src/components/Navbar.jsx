@@ -54,11 +54,11 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-white border-b shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <Link to="/" className="flex items-center">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition">
               Adaayien
             </h1>
-          </div>
+          </Link>
           <div className="hidden md:flex space-x-8">
             <Link to="/" className="text-gray-700 hover:text-purple-600 font-medium">Home</Link>
             <Link to="/shop" className="text-gray-700 hover:text-purple-600 font-medium">Shop Fabrics</Link>

@@ -8,6 +8,7 @@ export default function FeedGrid({
   displayedItems, 
   filteredFeedLength,
   onFabricClick,
+  onPostClick,
   postImageIndices,
   onNextPostImage,
   onPrevPostImage,
@@ -30,6 +31,7 @@ export default function FeedGrid({
                   imageIndex={postImageIndices[item.data.id] || 0}
                   onNextImage={() => onNextPostImage(item.data.id, item.data.images.length)}
                   onPrevImage={() => onPrevPostImage(item.data.id, item.data.images.length)}
+                  onClick={onPostClick}
                 />
               )}
             </div>

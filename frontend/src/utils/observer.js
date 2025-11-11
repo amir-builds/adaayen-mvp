@@ -1,22 +1,33 @@
 // Utility function to create interleaved feed
+// Pattern: 1 post per row, rest filled with fabrics (1 post + 3 fabrics per 4 items)
 export const createInterleavedFeed = (fabricData, posts, repeatCount = 20) => {
   const interleavedFeed = [];
   
-  for (let i = 0; i < Math.max(fabricData.length, posts.length) * repeatCount; i++) {
-    const fabricIndex = i % fabricData.length;
-    const postIndex = i % posts.length;
+  if (fabricData.length === 0) return interleavedFeed;
+  
+  let fabricIndex = 0;
+  let postIndex = 0;
+  
+  // Create feed with 1 post randomly placed in each row of 4
+  for (let row = 0; row < repeatCount; row++) {
+    // Random position for post in this row (0-3)
+    const postPosition = Math.floor(Math.random() * 4);
     
-    if (i % 2 === 0) {
-      // Preserve all original fabric data properties without modification
-      interleavedFeed.push({ 
-        type: 'fabric', 
-        data: Object.assign({}, fabricData[fabricIndex], { uniqueId: `f-${i}` })
-      });
-    } else {
-      interleavedFeed.push({ 
-        type: 'post', 
-        data: Object.assign({}, posts[postIndex], { uniqueId: `p-${i}` })
-      });
+    for (let col = 0; col < 4; col++) {
+      // Place post at random position, fabrics elsewhere
+      if (col === postPosition && posts.length > 0) {
+        interleavedFeed.push({ 
+          type: 'post', 
+          data: Object.assign({}, posts[postIndex % posts.length], { uniqueId: `p-${row}-${col}` })
+        });
+        postIndex++;
+      } else {
+        interleavedFeed.push({ 
+          type: 'fabric', 
+          data: Object.assign({}, fabricData[fabricIndex % fabricData.length], { uniqueId: `f-${row}-${col}` })
+        });
+        fabricIndex++;
+      }
     }
   }
   

@@ -1,12 +1,15 @@
 import React from 'react';
 import { Heart, MessageCircle, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 
-export default function PostCard({ post, imageIndex, onNextImage, onPrevImage }) {
+export default function PostCard({ post, imageIndex, onNextImage, onPrevImage, onClick }) {
   const currentImage = post.images && post.images[imageIndex];
   const hasMultipleImages = post.images && post.images.length > 1;
 
   return (
-    <div className="bg-white overflow-hidden group cursor-pointer">
+    <div 
+      className="bg-white overflow-hidden group cursor-pointer hover:shadow-xl transition-shadow duration-300"
+      onClick={() => onClick && onClick(post)}
+    >
       <div className="relative">
         <div className="h-80 flex items-center justify-center relative overflow-hidden bg-gray-100">
           {currentImage ? (

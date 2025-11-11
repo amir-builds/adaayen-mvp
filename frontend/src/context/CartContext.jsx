@@ -51,8 +51,7 @@ export const CartProvider = ({ children }) => {
       setCart(data.cart);
       return { success: true, message: data.message };
     } catch (err) {
-      console.error('Cart addItem error:', err);
-      console.error('Error response:', err.response?.data);
+      console.error('Cart error:', err.message);
       
       // Handle validation errors (422)
       let message;

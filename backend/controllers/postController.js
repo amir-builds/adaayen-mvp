@@ -103,11 +103,13 @@ export const createPost = async (req, res) => {
     });
 
     const savedPost = await newPost.save();
-    const populated = await savedPost
-      .populate("creator", "name email profilePic")
-      .populate("fabric", "name fabricType color price");
+    const populated = await savedPost.populate([
+      { path: "creator", select: "name email profilePic" },
+      { path: "fabric", select: "name fabricType color price" }
+    ]);
     res.status(201).json(populated);
   } catch (err) {
+    console.error('Error creating post:', err.message);
     res.status(400).json({ message: err.message });
   }
 };
