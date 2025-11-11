@@ -9,6 +9,7 @@ import Creators from './pages/Creators';
 import CreatorProfile from './pages/CreatorProfile';
 import CreatorDashboard from './pages/CreatorDashboard';
 import Cart from './pages/Cart';
+import ShopFabrics from './pages/ShopFabrics';
 import Navbar from './components/Navbar';
 
 const App = () => (
@@ -25,6 +26,7 @@ const App = () => (
       <Route path="/admin" element={<AdminWrapper />} />
       <Route path="/about" element={<About />} />
       <Route path="/cart" element={<Cart />} />
+      <Route path="/shop" element={<ShopFabrics />} />
     </Routes>
   </BrowserRouter>
 );

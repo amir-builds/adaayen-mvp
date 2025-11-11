@@ -87,8 +87,9 @@ const CreatorDashboard = () => {
         alert("✅ Post created successfully!");
       }
     } catch (err) {
-      console.error(err);
-      alert("❌ Failed to save post");
+      console.error('Error saving post:', err.message);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to save post";
+      alert(`❌ ${errorMsg}`);
     }
   };
 
