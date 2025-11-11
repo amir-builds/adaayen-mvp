@@ -30,9 +30,14 @@ export default function FabricModal({
     return Number.isFinite(n) ? n : 0;
   };
 
-  const formatPrice = (val) => {
-    const n = parsePrice(val);
-    return `$${n.toFixed(2)}`;
+  const formatPrice = (n) => {
+    if (!n && n !== 0) return '';
+    // If already a formatted string with currency, return as is
+    if (typeof n === 'string' && n.includes('₹')) return n;
+    // Convert to number and format
+    const num = typeof n === 'number' ? n : parseFloat(n);
+    if (isNaN(num)) return '';
+    return `₹${num.toFixed(2)}`;
   };
 
   // Memoized values (must be before early return)

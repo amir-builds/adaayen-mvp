@@ -32,10 +32,9 @@ export default function Cart() {
   };
 
   const formatPrice = (price) => {
-    return `$${Number(price).toFixed(2)}`;
-  };
-
-  if (loading && !cart) {
+    if (!price) return '₹0.00';
+    return `₹${Number(price).toFixed(2)}`;
+  };  if (loading && !cart) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-600">Loading cart...</div>

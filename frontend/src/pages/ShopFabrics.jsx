@@ -255,7 +255,7 @@ export default function ShopFabrics() {
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="font-bold text-gray-900 text-lg line-clamp-1">{fabric.name}</h3>
                       <span className="text-purple-600 font-bold text-lg whitespace-nowrap ml-2">
-                        ${typeof fabric.price === 'number' ? fabric.price.toFixed(2) : fabric.price}/m
+                        ₹{typeof fabric.price === 'number' ? fabric.price.toFixed(2) : fabric.price}/m
                       </span>
                     </div>
                     

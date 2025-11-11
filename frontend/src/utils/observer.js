@@ -39,5 +39,12 @@ export const filterFeed = (interleavedFeed, filter) => {
   if (filter === 'all') return interleavedFeed;
   if (filter === 'fabrics') return interleavedFeed.filter(item => item.type === 'fabric');
   if (filter === 'posts') return interleavedFeed.filter(item => item.type === 'post');
-  return interleavedFeed;
+  
+  // Filter by specific fabric ID - show only posts that use this fabric
+  return interleavedFeed.filter(item => {
+    if (item.type !== 'post') return false;
+    const post = item.data;
+    // Check if post's fabric matches the filter (fabric ID or _id)
+    return post.fabric?._id === filter || post.fabric?.id === filter || post.fabric === filter;
+  });
 };
