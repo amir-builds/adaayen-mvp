@@ -63,8 +63,18 @@ export const createFabric = async (req, res) => {
 // ✅ GET ALL FABRICS (Public)
 export const getAllFabrics = async (req, res) => {
   try {
-    const fabrics = await Fabric.find().sort({ createdAt: -1 });
-    res.json(fabrics);
+    const Post = (await import("../models/Post.js")).default;
+    const fabrics = await Fabric.find().sort({ createdAt: -1 }).lean();
+    
+    // Add post count for each fabric
+    const fabricsWithCount = await Promise.all(
+      fabrics.map(async (fabric) => {
+        const postCount = await Post.countDocuments({ fabric: fabric._id });
+        return { ...fabric, designs: postCount };
+      })
+    );
+    
+    res.json(fabricsWithCount);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

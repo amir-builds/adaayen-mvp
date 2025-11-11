@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Image as ImageIcon, DollarSign } from "lucide-react";
 import ImageUpload from "./ImageUpload";
+import api from "../../utils/api";
 
 const PostForm = ({ initial = {}, onSubmit, onCancel }) => {
   const [form, setForm] = useState({
@@ -10,10 +11,28 @@ const PostForm = ({ initial = {}, onSubmit, onCancel }) => {
     price: initial.price || "",
     fabricLink: initial.fabricLink || "",
     fabricType: initial.fabricType || "",
+    fabric: initial.fabric?._id || initial.fabric || "", // New: fabric ID
     _id: initial._id || undefined,
   });
   
   const [uploadedImages, setUploadedImages] = useState([]);
+  const [fabrics, setFabrics] = useState([]);
+  const [loadingFabrics, setLoadingFabrics] = useState(true);
+
+  // Fetch fabrics on component mount
+  useEffect(() => {
+    const fetchFabrics = async () => {
+      try {
+        const res = await api.get('/fabrics');
+        setFabrics(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error('Failed to fetch fabrics:', err);
+      } finally {
+        setLoadingFabrics(false);
+      }
+    };
+    fetchFabrics();
+  }, []);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -88,15 +107,28 @@ const PostForm = ({ initial = {}, onSubmit, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fabric Type
+              Select Fabric (Recommended)
             </label>
-            <input
-              name="fabricType"
-              value={form.fabricType}
+            <select
+              name="fabric"
+              value={form.fabric}
               onChange={handleChange}
-              placeholder="e.g., Silk, Cotton, Linen"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+            >
+              <option value="">-- Choose a fabric --</option>
+              {loadingFabrics ? (
+                <option disabled>Loading fabrics...</option>
+              ) : (
+                fabrics.map((fabric) => (
+                  <option key={fabric._id} value={fabric._id}>
+                    {fabric.name} - {fabric.fabricType} ({fabric.designs || 0} designs)
+                  </option>
+                ))
+              )}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Select the fabric used in this design to help users find it
+            </p>
           </div>
         </div>
 

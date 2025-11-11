@@ -153,7 +153,7 @@ const FabricUploadForm = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Price</label>
+          <label className="block text-sm font-medium text-gray-700">Price (per meter)</label>
           <input
             type="number"
             name="price"
@@ -162,6 +162,7 @@ const FabricUploadForm = () => {
             required
             min="0"
             step="0.01"
+            placeholder="e.g., 125.50"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
         </div>

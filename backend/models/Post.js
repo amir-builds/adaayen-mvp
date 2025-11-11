@@ -20,7 +20,14 @@ const postSchema = new mongoose.Schema(
       trim: true 
     },
 
-    // Optional field for fabric info
+    // Reference to Fabric model (new proper relationship)
+    fabric: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Fabric",
+      required: false // Optional for backward compatibility
+    },
+
+    // Legacy fields - kept for backward compatibility
     fabricType: { 
       type: String, 
       trim: true, 
@@ -69,5 +76,7 @@ const postSchema = new mongoose.Schema(
 
 // For faster lookup of creator's posts
 postSchema.index({ creator: 1 });
+// For faster lookup of fabric's posts
+postSchema.index({ fabric: 1 });
 
 export default mongoose.model("Post", postSchema);

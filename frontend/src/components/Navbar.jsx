@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, User, LogOut } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 export default function Navbar() {
   const [user, setUser] = useState(() => {
@@ -11,14 +12,22 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const ref = useRef();
+  const { getItemCount, loadCart } = useCart();
 
   useEffect(() => {
-    const onLogin = () => setUser(JSON.parse(localStorage.getItem('creator')) || null);
+    const onLogin = () => {
+      setUser(JSON.parse(localStorage.getItem('creator')) || null);
+      loadCart(); // Load cart when user logs in
+    };
     const onStorage = (e) => {
       if (e.key === 'creator' || e.key === 'token') onLogin();
     };
     window.addEventListener('user:login', onLogin);
     window.addEventListener('storage', onStorage);
+    
+    // Load cart on mount if user is logged in
+    if (user) loadCart();
+    
     return () => {
       window.removeEventListener('user:login', onLogin);
       window.removeEventListener('storage', onStorage);
@@ -63,9 +72,14 @@ export default function Navbar() {
             {/* Admin route hidden from navbar intentionally; access via /admin and login there */}
           </div>
           <div className="flex items-center gap-3">
-            <button className="p-2 hover:bg-gray-100 rounded-full transition">
+            <Link to="/cart" className="relative p-2 hover:bg-gray-100 rounded-full transition">
               <ShoppingCart size={20} className="text-gray-700" />
-            </button>
+              {getItemCount() > 0 && (
+                <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {getItemCount()}
+                </span>
+              )}
+            </Link>
 
             {!user ? (
               <div className="flex items-center gap-2">

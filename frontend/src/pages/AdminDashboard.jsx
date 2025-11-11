@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { Star } from 'lucide-react';
+import ImageUpload from '../components/Creator/ImageUpload';
 
 // Reusable form for create & update
 function FabricForm({ initial = {}, onCancel, onSaved }) {
@@ -13,8 +14,6 @@ function FabricForm({ initial = {}, onCancel, onSaved }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  const onFileChange = (e) => setFiles(Array.from(e.target.files || []));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,20 +47,42 @@ function FabricForm({ initial = {}, onCancel, onSaved }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       {error && <div className="text-red-600">{error}</div>}
-      <input className="w-full border px-2 py-2" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-      <input className="w-full border px-2 py-2" placeholder="Fabric type" value={fabricType} onChange={(e) => setFabricType(e.target.value)} />
-      <input className="w-full border px-2 py-2" placeholder="Color" value={color} onChange={(e) => setColor(e.target.value)} />
-      <input className="w-full border px-2 py-2" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} />
-      <textarea className="w-full border px-2 py-2" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+      <input className="w-full border px-2 py-2 rounded" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
+      <select className="w-full border px-2 py-2 rounded bg-white" value={fabricType} onChange={(e) => setFabricType(e.target.value)} required>
+        <option value="">-- Select Fabric Type --</option>
+        <option value="Cotton">Cotton</option>
+        <option value="Silk">Silk</option>
+        <option value="Linen">Linen</option>
+        <option value="Denim">Denim</option>
+        <option value="Wool">Wool</option>
+        <option value="Polyester">Polyester</option>
+        <option value="Net">Net</option>
+        <option value="Velvet">Velvet</option>
+        <option value="Chiffon">Chiffon</option>
+        <option value="Georgette">Georgette</option>
+        <option value="Crepe">Crepe</option>
+        <option value="Satin">Satin</option>
+        <option value="Organza">Organza</option>
+        <option value="Rayon">Rayon</option>
+        <option value="Muslin">Muslin</option>
+        <option value="Other">Other</option>
+      </select>
+      <input className="w-full border px-2 py-2 rounded" placeholder="Color" value={color} onChange={(e) => setColor(e.target.value)} />
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Price (per meter)</label>
+        <input className="w-full border px-2 py-2 rounded" placeholder="e.g., 125.50" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
+      </div>
+      <textarea className="w-full border px-2 py-2 rounded" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
       <div className="flex items-center gap-3">
         <label className="flex items-center gap-2"><input type="checkbox" checked={inStock} onChange={(e) => setInStock(e.target.checked)} /> In Stock</label>
       </div>
       <div>
-        <label className="block text-sm font-medium">Images (you can add multiple)</label>
-        <input type="file" multiple accept="image/*" onChange={onFileChange} />
-        <div className="flex gap-2 mt-2">
-          {files.map((f, i) => <div key={i} className="text-sm bg-gray-100 px-2 py-1 rounded">{f.name}</div>)}
-        </div>
+        <label className="block text-sm font-medium mb-2">Images (you can add multiple)</label>
+        <ImageUpload
+          images={files}
+          onChange={setFiles}
+          maxFiles={6}
+        />
       </div>
       <div className="flex gap-2">
         <button type="submit" className="bg-purple-600 text-white px-4 py-2 rounded" disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
