@@ -15,9 +15,19 @@ const app = express();
 
 connectDB();
 
-app.use(cors());
+// CORS configuration with environment variable support
+app.use(cors({
+  origin: process.env.FRONTEND_ORIGIN || '*',
+  credentials: true,
+}));
+
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Routes
 app.use("/api/fabrics", fabricRoutes);

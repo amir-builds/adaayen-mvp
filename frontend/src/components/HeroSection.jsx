@@ -27,7 +27,7 @@ export default function HeroSection() {
               Shop Fabrics
             </Link>
             <Link 
-              to="/creators"
+              to="/designs"
               className="border-2 border-white text-white px-6 py-2 rounded-full font-semibold hover:bg-white hover:text-purple-600 transition"
             >
               Browse Designs

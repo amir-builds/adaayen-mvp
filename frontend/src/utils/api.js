@@ -1,7 +1,10 @@
 import axios from "axios";
 
+// Use environment variable for API URL, fallback to localhost for development
+const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
 const api = axios.create({
-  baseURL: "http://localhost:5000/api", // update port if needed
+  baseURL,
 });
 
 // ✅ Automatically attach token if user is logged in
