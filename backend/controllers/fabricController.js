@@ -4,7 +4,7 @@ import { v2 as cloudinary } from 'cloudinary';
 // ✅ CREATE FABRIC (Admin only)
 export const createFabric = async (req, res) => {
   try {
-    const { name, description, price, fabricType, color, inStock } = req.body;
+    const { name, description, price, fabricType, color, inStock, specs } = req.body;
     // Support multiple uploaded images (req.files) while remaining backward-compatible
     const uploadedFiles = req.files || (req.file ? [req.file] : []);
 
@@ -46,7 +46,8 @@ export const createFabric = async (req, res) => {
       imageUrl,
       images,
       imagesMeta,
-      inStock
+      inStock,
+      specs
     });
 
     const savedFabric = await newFabric.save();
@@ -135,7 +136,7 @@ export const updateFabric = async (req, res) => {
     }
 
     // Update other fields from body
-    const updatable = ['name', 'description', 'price', 'fabricType', 'color', 'inStock'];
+    const updatable = ['name', 'description', 'price', 'fabricType', 'color', 'inStock', 'specs'];
     updatable.forEach((field) => {
       if (req.body[field] !== undefined) fabric[field] = req.body[field];
     });

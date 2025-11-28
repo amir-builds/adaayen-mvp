@@ -42,6 +42,14 @@ const fabricSchema = new mongoose.Schema(
     },
     inStock: { type: Boolean, default: true },
 
+    // Fabric specifications
+    specs: {
+      width: { type: String, default: 'N/A' },
+      weight: { type: String, default: 'N/A' },
+      care: { type: String, default: 'N/A' },
+      composition: { type: String, default: 'N/A' }
+    },
+
     // Removed creator field (only admin manages fabrics)
   },
   { timestamps: true }

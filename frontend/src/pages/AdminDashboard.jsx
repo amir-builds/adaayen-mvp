@@ -11,6 +11,11 @@ function FabricForm({ initial = {}, onCancel, onSaved }) {
   const [fabricType, setFabricType] = useState(initial.fabricType || '');
   const [color, setColor] = useState(initial.color || '');
   const [inStock, setInStock] = useState(initial.inStock ?? true);
+  // Specifications
+  const [width, setWidth] = useState(initial.specs?.width || '');
+  const [weight, setWeight] = useState(initial.specs?.weight || '');
+  const [care, setCare] = useState(initial.specs?.care || '');
+  const [composition, setComposition] = useState(initial.specs?.composition || '');
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,6 +32,11 @@ function FabricForm({ initial = {}, onCancel, onSaved }) {
       fd.append('fabricType', fabricType);
       fd.append('color', color);
       fd.append('inStock', inStock);
+      // Add specifications
+      fd.append('specs[width]', width);
+      fd.append('specs[weight]', weight);
+      fd.append('specs[care]', care);
+      fd.append('specs[composition]', composition);
       files.forEach((f) => fd.append('images', f));
 
       let res;
@@ -73,6 +83,38 @@ function FabricForm({ initial = {}, onCancel, onSaved }) {
         <input className="w-full border px-2 py-2 rounded" placeholder="e.g., 125.50" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
       </div>
       <textarea className="w-full border px-2 py-2 rounded" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+      
+      {/* Specifications Section */}
+      <div className="border-t pt-4 mt-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Fabric Specifications</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <input 
+            className="w-full border px-2 py-2 rounded" 
+            placeholder="Width (e.g., 44 inches)" 
+            value={width} 
+            onChange={(e) => setWidth(e.target.value)} 
+          />
+          <input 
+            className="w-full border px-2 py-2 rounded" 
+            placeholder="Weight (e.g., 150 GSM)" 
+            value={weight} 
+            onChange={(e) => setWeight(e.target.value)} 
+          />
+          <input 
+            className="w-full border px-2 py-2 rounded" 
+            placeholder="Care (e.g., Dry clean only)" 
+            value={care} 
+            onChange={(e) => setCare(e.target.value)} 
+          />
+          <input 
+            className="w-full border px-2 py-2 rounded" 
+            placeholder="Composition (e.g., 100% Cotton)" 
+            value={composition} 
+            onChange={(e) => setComposition(e.target.value)} 
+          />
+        </div>
+      </div>
+      
       <div className="flex items-center gap-3">
         <label className="flex items-center gap-2"><input type="checkbox" checked={inStock} onChange={(e) => setInStock(e.target.checked)} /> In Stock</label>
       </div>
