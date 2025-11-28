@@ -129,7 +129,7 @@ export default function FabricModal({
             <div className="relative">
               <div className="h-96 rounded-xl bg-gray-100 relative overflow-hidden flex items-center justify-center">
                 {images.length > 0 ? (
-                  <img src={images[currentImageIndex]} alt={`${fabric.name} - ${currentImageIndex + 1}`} className="max-h-full max-w-full object-contain" />
+                  <img src={images[currentImageIndex]} alt={`${fabric.name} - ${currentImageIndex + 1}`} className="max-h-full max-w-full object-contain" loading="lazy" />
                 ) : (
                   <div className="text-gray-400">No image available</div>
                 )}
@@ -144,7 +144,7 @@ export default function FabricModal({
             <div className="grid grid-cols-4 gap-2 mt-4">
               {images.map((img, idx) => (
                 <button key={idx} onClick={() => onImageSelect(idx)} aria-label={`Select image ${idx + 1}`} className={`h-20 rounded-lg overflow-hidden ${currentImageIndex === idx ? 'ring-4 ring-purple-600' : 'opacity-80 hover:opacity-100'}`}>
-                  <img src={img} alt={`thumb-${idx}`} className="w-full h-full object-cover" />
+                  <img src={img} alt={`thumb-${idx}`} className="w-full h-full object-cover" loading="lazy" />
                 </button>
               ))}
             </div>

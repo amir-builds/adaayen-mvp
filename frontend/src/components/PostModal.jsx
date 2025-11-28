@@ -64,6 +64,7 @@ export default function PostModal({ post, onClose }) {
                   src={images[currentImageIndex]}
                   alt={post.title}
                   className="max-h-[500px] w-full object-contain"
+                  loading="lazy"
                 />
                 
                 {/* Image Navigation */}
@@ -112,6 +113,7 @@ export default function PostModal({ post, onClose }) {
                     src={creatorProfilePic}
                     alt={creatorName}
                     className="w-16 h-16 rounded-full object-cover border-2 border-purple-600"
+                    loading="lazy"
                   />
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">

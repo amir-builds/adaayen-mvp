@@ -24,9 +24,10 @@ const PostCard = ({ post }) => {
       {/* Image Carousel */}
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         <img
-          src={images[currentImageIndex] || "/public/default-image.png"}
+          src={images[currentImageIndex] || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='14' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3EPost Image%3C/text%3E%3C/svg%3E"}
           alt={post.title}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          loading="lazy"
         />
         
         {/* Carousel Controls */}

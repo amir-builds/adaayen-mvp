@@ -18,9 +18,10 @@ const CreatorHeader = ({ creator, postCount = 0 }) => {
             <div className="flex items-end gap-4">
               <div className="relative">
                 <img
-                  src={creator.profilePic || "/public/default-avatar.png"}
+                  src={creator.profilePic || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Crect width='100%25' height='100%25' fill='%23e5e7eb'/%3E%3Ccircle cx='64' cy='50' r='20' fill='%239ca3af'/%3E%3Cpath d='M44 90c0-11 9-20 20-20s20 9 20 20' fill='%239ca3af'/%3E%3C/svg%3E"}
                   alt={creator.name}
                   className="w-32 h-32 rounded-xl object-cover ring-4 ring-white shadow-lg"
+                  loading="lazy"
                 />
                 <div className="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center">
                   <CheckCircle className="w-4 h-4 text-white" />
