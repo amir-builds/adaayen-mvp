@@ -85,7 +85,18 @@ export default function FabricModal({
   const handleAddToCart = async () => {
     // Check if user is logged in
     const token = localStorage.getItem('token');
-    if (!token) {
+    const user = localStorage.getItem('creator');
+    
+    if (!token || !user) {
+      showError('Please login to add items to cart');
+      setTimeout(() => navigate('/login'), 1500);
+      return;
+    }
+
+    // Additional check - verify user object is valid
+    try {
+      JSON.parse(user);
+    } catch {
       showError('Please login to add items to cart');
       setTimeout(() => navigate('/login'), 1500);
       return;
