@@ -144,6 +144,11 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('fabrics');
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState(null);
+  
+  // Hero images state
+  const [heroImages, setHeroImages] = useState([]);
+  const [heroFiles, setHeroFiles] = useState([]);
+  const [heroLoading, setHeroLoading] = useState(false);
 
   const fetchFabrics = async () => {
     setLoading(true);
@@ -173,6 +178,59 @@ export default function AdminDashboard() {
     }
   };
 
+  // Fetch hero images
+  const fetchHeroImages = async () => {
+    try {
+      const res = await api.get('/settings/hero-images');
+      setHeroImages(res.data.images || []);
+    } catch (err) {
+      console.error('Failed to load hero images:', err);
+    }
+  };
+
+  // Upload hero images
+  const uploadHeroImages = async () => {
+    if (heroFiles.length === 0) {
+      alert('Please select images first');
+      return;
+    }
+    setHeroLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append('existingImages', JSON.stringify(heroImages));
+      heroFiles.forEach((file) => fd.append('images', file));
+      
+      const res = await api.put('/settings/hero-images', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setHeroImages(res.data.images || []);
+      setHeroFiles([]);
+      alert('✅ Hero images updated successfully!');
+    } catch (err) {
+      alert('❌ Failed to upload images: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setHeroLoading(false);
+    }
+  };
+
+  // Delete hero image
+  const deleteHeroImage = async (imageUrl) => {
+    if (!confirm('Delete this hero image?')) return;
+    setHeroLoading(true);
+    try {
+      const res = await api.delete('/settings/hero-images', {
+        data: { imageUrl }
+      });
+      setHeroImages(res.data.images || []);
+      alert('✅ Image deleted successfully!');
+    } catch (err) {
+      alert('❌ Failed to delete image: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setHeroLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchFabrics();
   }, []);
@@ -180,6 +238,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === 'posts') {
       fetchPosts();
+    } else if (activeTab === 'settings') {
+      fetchHeroImages();
     }
   }, [activeTab]);
 
@@ -258,6 +318,12 @@ export default function AdminDashboard() {
           className={`pb-2 px-4 font-semibold transition ${activeTab === 'posts' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-600 hover:text-gray-900'}`}
         >
           Posts
+        </button>
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`pb-2 px-4 font-semibold transition ${activeTab === 'settings' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-600 hover:text-gray-900'}`}
+        >
+          Settings
         </button>
       </div>
 
@@ -372,6 +438,60 @@ export default function AdminDashboard() {
             </div>
           )}
         </>
+      )}
+
+      {/* SETTINGS TAB */}
+      {activeTab === 'settings' && (
+        <div className="bg-white p-6 rounded shadow">
+          <h2 className="text-xl font-bold mb-4">Hero Banner Settings</h2>
+          
+          {/* Current Hero Images */}
+          <div className="mb-6">
+            <h3 className="font-semibold mb-3">Current Hero Images ({heroImages.length})</h3>
+            {heroImages.length === 0 ? (
+              <p className="text-gray-500">No hero images configured. Using default images.</p>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {heroImages.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img 
+                      src={url} 
+                      alt={`Hero ${index + 1}`} 
+                      className="w-full h-40 object-cover rounded"
+                    />
+                    <button
+                      onClick={() => deleteHeroImage(url)}
+                      disabled={heroLoading}
+                      className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 transition"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Upload New Images */}
+          <div className="border-t pt-6">
+            <h3 className="font-semibold mb-3">Add New Hero Images</h3>
+            <ImageUpload
+              images={heroFiles}
+              onChange={setHeroFiles}
+              maxFiles={10}
+            />
+            <button
+              onClick={uploadHeroImages}
+              disabled={heroLoading || heroFiles.length === 0}
+              className="mt-4 bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {heroLoading ? 'Uploading...' : 'Upload Images'}
+            </button>
+            <p className="text-sm text-gray-500 mt-2">
+              Recommended: 1920x600px landscape images. Images will auto-rotate every 5 seconds on the homepage.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );

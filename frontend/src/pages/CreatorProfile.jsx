@@ -21,7 +21,9 @@ const CreatorProfile = () => {
           api.get(`/posts/creator/${id}`),
         ]);
         setCreator(cRes.data);
-        setPosts(pRes.data || []);
+        // Handle both old (array) and new (object with pagination) response formats
+        const postsArray = Array.isArray(pRes.data) ? pRes.data : (pRes.data?.posts || []);
+        setPosts(postsArray);
       } catch (err) {
         console.error(err);
       } finally {

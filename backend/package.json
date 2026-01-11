@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "cleanup:images": "node scripts/cleanup-orphaned-images.js",
+    "cleanup:images:dry-run": "node scripts/cleanup-orphaned-images.js --dry-run"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

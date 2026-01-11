@@ -25,7 +25,8 @@ export default function FabricDesigns() {
 
         // Fetch all posts and filter by this fabric
         const postsRes = await api.get('/posts');
-        const allPosts = postsRes.data || [];
+        // Handle both old (array) and new (object with pagination) response formats
+        const allPosts = Array.isArray(postsRes.data) ? postsRes.data : (postsRes.data?.posts || []);
         
         // Filter posts that use this fabric
         const fabricPosts = allPosts.filter(p => {

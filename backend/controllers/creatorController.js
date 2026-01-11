@@ -4,11 +4,43 @@ import Post from "../models/Post.js";
 // ✅ Get all creators (public)
 export const getAllCreators = async (req, res) => {
   try {
-    const creators = await Creator.find({ role: "creator" })
-      .select("-password")
-      .sort({ createdAt: -1 });
+    const { page: pageParam, limit: limitParam } = req.query;
     
-    res.json(creators);
+    // Pagination parameters
+    const page = parseInt(pageParam) || 1;
+    const limit = parseInt(limitParam) || 20;
+    const skip = (page - 1) * limit;
+    
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({ 
+        message: "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100" 
+      });
+    }
+    
+    const query = { role: "creator" };
+    
+    // Get total count
+    const totalCreators = await Creator.countDocuments(query);
+    const totalPages = Math.ceil(totalCreators / limit);
+    
+    const creators = await Creator.find(query)
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    res.json({
+      creators,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalCreators,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

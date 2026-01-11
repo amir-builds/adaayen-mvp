@@ -24,7 +24,9 @@ const PostForm = ({ initial = {}, onSubmit, onCancel }) => {
     const fetchFabrics = async () => {
       try {
         const res = await api.get('/fabrics');
-        setFabrics(Array.isArray(res.data) ? res.data : []);
+        // Handle both old (array) and new (object with pagination) response formats
+        const fabricsArray = Array.isArray(res.data) ? res.data : (res.data?.fabrics || []);
+        setFabrics(fabricsArray);
       } catch (err) {
         console.error('Failed to fetch fabrics:', err);
       } finally {

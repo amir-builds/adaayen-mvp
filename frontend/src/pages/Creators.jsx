@@ -12,7 +12,9 @@ const Creators = () => {
     const fetchCreators = async () => {
       try {
         const res = await api.get("/creators");
-        setCreators(res.data);
+        // Handle both old (array) and new (object with pagination) response formats
+        const creatorsArray = Array.isArray(res.data) ? res.data : (res.data?.creators || []);
+        setCreators(creatorsArray);
       } catch (err) {
         console.error("Failed to load creators", err);
       } finally {

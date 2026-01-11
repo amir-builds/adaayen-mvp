@@ -85,15 +85,22 @@ export default function ShopFabrics() {
   const [loading, setLoading] = useState(true);
   const [selectedFabric, setSelectedFabric] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [pagination, setPagination] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch fabrics from API
   useEffect(() => {
     const fetchFabrics = async () => {
       try {
         setLoading(true);
-        const data = await getAllFabrics();
+        const data = await getAllFabrics(currentPage, 50); // Fetch 50 items per page
+        // Handle both old (array) and new (object with pagination) response formats
         if (Array.isArray(data)) {
           setFabrics(data);
+          setPagination(null);
+        } else {
+          setFabrics(data.fabrics || []);
+          setPagination(data.pagination || null);
         }
       } catch (err) {
         console.error('Failed to fetch fabrics:', err);
@@ -102,7 +109,7 @@ export default function ShopFabrics() {
       }
     };
     fetchFabrics();
-  }, []);
+  }, [currentPage]);
 
   // Filter fabrics by category
   const filteredFabrics = selectedCategory === 'All' 
@@ -280,6 +287,39 @@ export default function ShopFabrics() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Pagination Controls */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={!pagination.hasPrevPage}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  pagination.hasPrevPage
+                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                Previous
+              </button>
+              
+              <span className="px-4 py-2 text-gray-700">
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                disabled={!pagination.hasNextPage}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  pagination.hasNextPage
+                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                Next
+              </button>
             </div>
           )}
         </div>

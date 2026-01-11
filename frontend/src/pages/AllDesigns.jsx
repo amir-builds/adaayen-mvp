@@ -11,15 +11,21 @@ export default function AllDesigns() {
   const [selectedPost, setSelectedPost] = useState(null);
   const [postImageIndices, setPostImageIndices] = useState({});
   const [filterType, setFilterType] = useState('all'); // all, featured
+  const [pagination, setPagination] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/posts');
-        const data = res.data || [];
-        setPosts(data);
-        setFilteredPosts(data);
+        const res = await api.get(`/posts?page=${currentPage}&limit=50`);
+        // Handle both old (array) and new (object with pagination) response formats
+        const postsData = Array.isArray(res.data) ? res.data : (res.data.posts || []);
+        const paginationData = res.data.pagination || null;
+        
+        setPosts(postsData);
+        setFilteredPosts(postsData);
+        setPagination(paginationData);
       } catch (err) {
         console.error('Failed to fetch posts:', err);
       } finally {
@@ -28,7 +34,7 @@ export default function AllDesigns() {
     };
 
     fetchPosts();
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
     if (filterType === 'featured') {
@@ -145,6 +151,39 @@ export default function AllDesigns() {
                 />
               );
             })}
+          </div>
+        )}
+        
+        {/* Pagination Controls */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={!pagination.hasPrevPage}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                pagination.hasPrevPage
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Previous
+            </button>
+            
+            <span className="px-4 py-2 text-gray-700">
+              Page {pagination.currentPage} of {pagination.totalPages}
+            </span>
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+              disabled={!pagination.hasNextPage}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                pagination.hasNextPage
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Next
+            </button>
           </div>
         )}
       </div>

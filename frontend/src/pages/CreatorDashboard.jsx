@@ -22,7 +22,9 @@ const CreatorDashboard = () => {
         ]);
         
         setProfile(profileRes.data);
-        setPosts(postsRes.data || []);
+        // Handle both old (array) and new (object with pagination) response formats
+        const postsArray = Array.isArray(postsRes.data) ? postsRes.data : (postsRes.data?.posts || []);
+        setPosts(postsArray);
         setStats(statsRes.data);
       } catch (err) {
         console.error(err);

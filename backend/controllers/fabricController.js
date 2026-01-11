@@ -1,5 +1,5 @@
 import Fabric from "../models/Fabric.js";
-import { v2 as cloudinary } from 'cloudinary';
+import { deleteImagesFromMeta } from '../utils/cloudinary.js';
 
 // ✅ CREATE FABRIC (Admin only)
 export const createFabric = async (req, res) => {
@@ -65,7 +65,29 @@ export const createFabric = async (req, res) => {
 export const getAllFabrics = async (req, res) => {
   try {
     const Post = (await import("../models/Post.js")).default;
-    const fabrics = await Fabric.find().sort({ createdAt: -1 }).lean();
+    
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({ 
+        message: "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100" 
+      });
+    }
+    
+    // Get total count for pagination metadata
+    const totalFabrics = await Fabric.countDocuments();
+    const totalPages = Math.ceil(totalFabrics / limit);
+    
+    // Fetch paginated fabrics
+    const fabrics = await Fabric.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
     
     // Add post count for each fabric
     const fabricsWithCount = await Promise.all(
@@ -75,7 +97,17 @@ export const getAllFabrics = async (req, res) => {
       })
     );
     
-    res.json(fabricsWithCount);
+    res.json({
+      fabrics: fabricsWithCount,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalFabrics,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -161,29 +193,40 @@ export const deleteFabric = async (req, res) => {
       return res.status(404).json({ message: "Fabric not found" });
     }
 
-    // If imagesMeta exists, attempt to remove each file from Cloudinary
-    try {
-      const toDelete = (fabric.imagesMeta || []).map((m) => m?.public_id).filter(Boolean);
-      if (toDelete.length > 0) {
-        await Promise.all(
-          toDelete.map(async (pid) => {
-            try {
-              await cloudinary.uploader.destroy(pid);
-            } catch (err) {
-              // log and continue
-              console.error('Cloudinary delete failed for', pid, err?.message || err);
-            }
-          })
-        );
+    // Delete images from Cloudinary with proper verification
+    let deletionWarnings = [];
+    if (fabric.imagesMeta && fabric.imagesMeta.length > 0) {
+      console.log(`🗑️ Deleting ${fabric.imagesMeta.length} images for fabric ${req.params.id}`);
+      
+      const deletionResult = await deleteImagesFromMeta(fabric.imagesMeta);
+      
+      if (deletionResult.failed > 0) {
+        const failedImages = deletionResult.results
+          .filter(r => !r.success)
+          .map(r => r.publicId);
+        
+        console.error(`❌ Failed to delete ${deletionResult.failed} images:`, failedImages);
+        deletionWarnings.push(`${deletionResult.failed} image(s) could not be deleted from cloud storage`);
       }
-    } catch (err) {
-      console.error('Error while deleting cloudinary images for fabric', req.params.id, err?.message || err);
+      
+      console.log(`✅ Successfully deleted ${deletionResult.successful} of ${fabric.imagesMeta.length} images`);
     }
 
+    // Delete fabric from database
     await Fabric.deleteOne({ _id: req.params.id });
 
-    res.json({ message: "Fabric deleted successfully" });
+    const response = { 
+      message: "Fabric deleted successfully",
+      imagesDeleted: fabric.imagesMeta?.length || 0
+    };
+    
+    if (deletionWarnings.length > 0) {
+      response.warnings = deletionWarnings;
+    }
+
+    res.json(response);
   } catch (error) {
+    console.error('Error deleting fabric:', error);
     res.status(500).json({ message: error.message });
   }
 };

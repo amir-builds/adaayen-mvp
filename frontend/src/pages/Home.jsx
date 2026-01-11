@@ -38,9 +38,11 @@ export default function Home() {
     const fetchFabrics = async () => {
       try {
         const data = await getAllFabrics();
-        if (mounted && Array.isArray(data)) {
+        // Handle both old (array) and new (object with pagination) response formats
+        const fabricsArray = Array.isArray(data) ? data : (data?.fabrics || []);
+        if (mounted && fabricsArray.length > 0) {
           // Normalize backend fabric shape to UI-friendly shape
-          const mapped = data.map(f => ({
+          const mapped = fabricsArray.map(f => ({
             _id: f._id, // Keep original MongoDB _id for cart/API operations
             id: f._id || f.id, // Also provide id for compatibility
             name: f.name,
@@ -101,9 +103,11 @@ export default function Home() {
       try {
         const res = await api.get('/posts');
         const data = res.data || [];
-        if (mounted && Array.isArray(data)) {
+        // Handle both old (array) and new (object with pagination) response formats
+        const postsArray = Array.isArray(data) ? data : (data?.posts || []);
+        if (mounted && postsArray.length > 0) {
           // Map posts from API - preserve full creator object for modal
-          const mappedPosts = data.map(p => ({
+          const mappedPosts = postsArray.map(p => ({
             ...p,
             type: 'post',
             id: p._id,
