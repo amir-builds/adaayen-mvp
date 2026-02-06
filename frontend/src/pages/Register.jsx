@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
+import PasswordStrengthInput from '../components/PasswordStrengthInput';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -32,7 +33,12 @@ export default function Register() {
       <form onSubmit={onSubmit} className="space-y-4">
         <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border px-3 py-2 rounded" placeholder="Full name" />
         <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border px-3 py-2 rounded" placeholder="Email" />
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border px-3 py-2 rounded" placeholder="Password (min 6 chars)" />
+        
+        <PasswordStrengthInput 
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Create a strong password"
+        />
 
         <div>
           <label className="text-sm mr-2">Register as:</label>
