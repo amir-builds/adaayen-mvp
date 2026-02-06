@@ -17,13 +17,18 @@ export const registerCreator = async (req, res) => {
       return res.status(400).json({ message: "Email already in use" });
     }
 
+    // ✅ SECURITY: Only allow 'customer' or 'creator' roles
+    // 'admin' role can ONLY be set during initial setup, not via registration
+    const allowedRoles = ['customer', 'creator'];
+    const userRole = allowedRoles.includes(role) ? role : 'customer';
+
     // Create new user (password will be hashed by pre-save hook)
     const newCreator = new Creator({
       name,
       email,
       password,
       bio: bio || "",
-      role: role || "creator", // Default to creator
+      role: userRole, // Only 'customer' or 'creator', never 'admin'
     });
 
     await newCreator.save();
@@ -39,7 +44,7 @@ export const registerCreator = async (req, res) => {
         name: newCreator.name,
         email: newCreator.email,
         bio: newCreator.bio,
-        role: newCreator.role, // Include role in response
+        role: newCreator.role, // Return role to frontend (customer or creator)
       },
     });
   } catch (error) {
