@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import AdminWrapper from './pages/AdminWrapper';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import Profile from './pages/Profile';
 import Creators from './pages/Creators';
 import CreatorProfile from './pages/CreatorProfile';
@@ -21,6 +22,7 @@ const App = () => (
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-email/:token" element={<VerifyEmail />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/creators" element={<Creators />} />
       <Route path="/creators/:id" element={<CreatorProfile />} />

@@ -1,5 +1,5 @@
 import express from "express";
-import { registerCreator, loginCreator } from "../controllers/authController.js";
+import { registerCreator, loginCreator, verifyEmail, resendVerification } from "../controllers/authController.js";
 import { body } from "express-validator";
 import { validate } from "../middleware/validate.js";
 
@@ -32,6 +32,18 @@ router.post(
   ],
   validate,
   loginCreator
+);
+
+// ✅ EMAIL VERIFICATION ROUTES
+router.get("/verify-email/:token", verifyEmail);
+
+router.post(
+  "/resend-verification", 
+  [
+    body("email").isEmail().withMessage("Valid email required"),
+  ],
+  validate,
+  resendVerification
 );
 
 export default router;

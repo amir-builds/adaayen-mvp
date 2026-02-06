@@ -12,8 +12,21 @@ const creatorSchema = new mongoose.Schema(
       type: String, 
       enum: ["creator", "admin", "customer"], 
       default: "creator" 
-    }
-    // ❌ No fabrics array needed (creators don't add fabrics)
+    },
+    // ✅ EMAIL VERIFICATION FIELDS
+    emailVerified: { 
+      type: Boolean, 
+      default: false 
+    },
+    emailVerificationToken: String,
+    emailVerificationExpires: Date,
+    // Account security fields
+    failedLoginAttempts: { 
+      type: Number, 
+      default: 0 
+    },
+    lockedUntil: Date,
+    lastLogin: Date
   },
   { timestamps: true }
 );
