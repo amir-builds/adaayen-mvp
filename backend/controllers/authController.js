@@ -1,4 +1,7 @@
-import Creator from "../models/Creator.js";
+import User from "../models/User.js";
+import Customer from "../models/Customer.js";
+import CreatorProfile from "../models/CreatorProfile.js";
+import Admin from "../models/Admin.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { generateVerificationToken, sendVerificationEmail } from '../utils/emailService.js';
@@ -10,11 +13,11 @@ const generateToken = (id, role) => {
 };
 
 // Register
-export const registerCreator = async (req, res) => {
+export const registerUser = async (req, res) => {
   try {
     const { name, email, password, bio, role } = req.body;
 
-    const existingUser = await Creator.findOne({ email });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already in use" });
     }
@@ -43,21 +46,31 @@ export const registerCreator = async (req, res) => {
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Create new user (password will be hashed by pre-save hook)
-    const newCreator = new Creator({
+    const newUser = new User({
       name,
       email,
       password,
-      bio: bio || "",
       role: userRole, // Only 'customer' or 'creator', never 'admin'
       emailVerified: false, // ✅ Account starts unverified
       emailVerificationToken: verificationToken,
       emailVerificationExpires: verificationExpires,
     });
 
-    await newCreator.save();
+    await newUser.save();
+
+    // Create role-specific profile
+    let roleSpecificData = null;
+    if (userRole === 'customer') {
+      roleSpecificData = await Customer.create({ user: newUser._id });
+    } else if (userRole === 'creator') {
+      roleSpecificData = await CreatorProfile.create({ 
+        user: newUser._id,
+        bio: bio || ""
+      });
+    }
 
     // ✅ Send verification email (don't block registration if email fails)
-    const emailResult = await sendVerificationEmail(newCreator, verificationToken);
+    const emailResult = await sendVerificationEmail(newUser, verificationToken);
     
     if (!emailResult.success) {
       console.error('❌ Failed to send verification email:', emailResult.error);
@@ -68,11 +81,11 @@ export const registerCreator = async (req, res) => {
     res.status(201).json({
       message: "Registration successful! Please check your email to verify your account.",
       emailSent: emailResult.success,
-      creator: {
-        id: newCreator._id,
-        name: newCreator.name,
-        email: newCreator.email,
-        role: newCreator.role,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
         emailVerified: false,
       },
     });
@@ -82,69 +95,66 @@ export const registerCreator = async (req, res) => {
 };
 
 // Login
-export const loginCreator = async (req, res) => {
+export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const creator = await Creator.findOne({ email });
-    if (!creator) {
+    const user = await User.findOne({ email });
+    if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     // ✅ Check if account is locked
-    if (creator.lockedUntil && creator.lockedUntil > new Date()) {
+    if (user.isAccountLocked()) {
       return res.status(403).json({ 
         message: "Account temporarily locked due to too many failed attempts. Try again later." 
       });
     }
 
     // ✅ Check if email is verified
-    if (!creator.emailVerified) {
+    if (!user.emailVerified) {
       return res.status(403).json({ 
         message: "Please verify your email address before logging in. Check your inbox for verification link.",
         emailVerified: false 
       });
     }
 
-    const isMatch = await bcrypt.compare(password, creator.password);
+    const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       // ✅ Increment failed login attempts
-      creator.failedLoginAttempts = (creator.failedLoginAttempts || 0) + 1;
-      
-      if (creator.failedLoginAttempts >= 5) {
-        creator.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-        creator.failedLoginAttempts = 0;
-        await creator.save();
-        return res.status(403).json({ 
-          message: "Account locked due to too many failed attempts. Try again in 15 minutes." 
-        });
-      }
-      
-      await creator.save();
+      await user.incrementFailedAttempts();
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     // ✅ Reset failed attempts on successful login
-    creator.failedLoginAttempts = 0;
-    creator.lockedUntil = null;
-    creator.lastLogin = new Date();
-    await creator.save();
+    await user.resetFailedAttempts();
+
+    // Fetch role-specific data
+    let roleData = null;
+    if (user.role === 'customer') {
+      roleData = await Customer.findOne({ user: user._id });
+    } else if (user.role === 'creator') {
+      roleData = await CreatorProfile.findOne({ user: user._id });
+    } else if (user.role === 'admin') {
+      roleData = await Admin.findOne({ user: user._id });
+    }
 
     // Generate token with role
-    const token = generateToken(creator._id, creator.role);
+    const token = generateToken(user._id, user.role);
 
     res.status(200).json({
       message: "Login successful",
       token,
-      creator: {
-        id: creator._id,
-        name: creator.name,
-        email: creator.email,
-        bio: creator.bio,
-        role: creator.role,
-        emailVerified: creator.emailVerified,
-        lastLogin: creator.lastLogin,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        emailVerified: user.emailVerified,
+        lastLogin: user.lastLogin,
+        profilePic: user.profilePic
       },
+      roleData
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -152,32 +162,80 @@ export const loginCreator = async (req, res) => {
 };
 
 // Get profile
-export const getCreatorProfile = async (req, res) => {
+export const getUserProfile = async (req, res) => {
   try {
-    const creator = await Creator.findById(req.user.id).select("-password");
-    if (!creator) {
-      return res.status(404).json({ message: "Creator not found" });
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-    res.json(creator);
+
+    // Fetch role-specific data
+    let roleData = null;
+    if (user.role === 'customer') {
+      roleData = await Customer.findOne({ user: user._id }).populate('wishlist.fabric');
+    } else if (user.role === 'creator') {
+      roleData = await CreatorProfile.findOne({ user: user._id });
+    } else if (user.role === 'admin') {
+      roleData = await Admin.findOne({ user: user._id });
+    }
+
+    res.json({ user, roleData });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
 // Update profile
-export const updateCreatorProfile = async (req, res) => {
+export const updateUserProfile = async (req, res) => {
   try {
-    const creator = await Creator.findById(req.user.id);
-    if (!creator) {
-      return res.status(404).json({ message: "Creator not found" });
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    creator.name = req.body.name || creator.name;
-    creator.bio = req.body.bio || creator.bio;
-    creator.profilePic = req.body.profilePic || creator.profilePic;
+    // Update base user fields
+    user.name = req.body.name || user.name;
+    user.profilePic = req.body.profilePic || user.profilePic;
+    user.phone = req.body.phone || user.phone;
+    
+    await user.save();
 
-    const updated = await creator.save();
-    res.json(updated);
+    // Update role-specific data
+    if (user.role === 'creator' && req.body.bio !== undefined) {
+      await CreatorProfile.findOneAndUpdate(
+        { user: user._id },
+        { 
+          bio: req.body.bio,
+          specialization: req.body.specialization || undefined,
+          experience: req.body.experience || undefined,
+          'location.city': req.body.city || undefined,
+          'location.state': req.body.state || undefined,
+          'socialLinks': req.body.socialLinks || undefined
+        },
+        { new: true }
+      );
+    } else if (user.role === 'customer') {
+      await Customer.findOneAndUpdate(
+        { user: user._id },
+        {
+          preferredFabricTypes: req.body.preferredFabricTypes || undefined,
+          'priceRange': req.body.priceRange || undefined
+        },
+        { new: true }
+      );
+    }
+
+    // Fetch updated profile
+    let roleData = null;
+    if (user.role === 'customer') {
+      roleData = await Customer.findOne({ user: user._id });
+    } else if (user.role === 'creator') {
+      roleData = await CreatorProfile.findOne({ user: user._id });
+    } else if (user.role === 'admin') {
+      roleData = await Admin.findOne({ user: user._id });
+    }
+
+    res.json({ user, roleData });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -191,44 +249,41 @@ export const verifyEmail = async (req, res) => {
     const { token } = req.params;
     
     if (!token) {
-      return res.status(400).json({ message: "Verification token is required" });
+      // Redirect to frontend with error
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/?verification=error&message=missing-token`);
     }
 
-    const creator = await Creator.findOne({
+    const user = await User.findOne({
       emailVerificationToken: token,
       emailVerificationExpires: { $gt: new Date() } // Token not expired
     });
 
-    if (!creator) {
-      return res.status(400).json({ 
-        message: "Invalid or expired verification token. Please request a new verification email." 
-      });
+    if (!user) {
+      // Redirect to frontend with error
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/?verification=error&message=invalid-token`);
     }
 
     // ✅ Mark email as verified
-    creator.emailVerified = true;
-    creator.emailVerificationToken = undefined;
-    creator.emailVerificationExpires = undefined;
-    await creator.save();
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
 
     // ✅ Generate JWT token now that email is verified
-    const jwtToken = generateToken(creator._id, creator.role);
+    const jwtToken = generateToken(user._id, user.role);
 
-    res.status(200).json({
-      message: "Email verified successfully! You can now log in.",
-      verified: true,
-      token: jwtToken,
-      creator: {
-        id: creator._id,
-        name: creator.name,
-        email: creator.email,
-        role: creator.role,
-        emailVerified: true,
-      },
-    });
+    // Redirect to frontend with success and token
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/?verification=success&token=${jwtToken}&user=${encodeURIComponent(JSON.stringify({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      emailVerified: true
+    }))}`);
   } catch (error) {
     console.error("Email verification error:", error);
-    res.status(500).json({ message: "Email verification failed. Please try again." });
+    // Redirect to frontend with error
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/?verification=error&message=server-error`);
   }
 };
 
@@ -237,12 +292,12 @@ export const resendVerification = async (req, res) => {
   try {
     const { email } = req.body;
     
-    const creator = await Creator.findOne({ email });
-    if (!creator) {
+    const user = await User.findOne({ email });
+    if (!user) {
       return res.status(404).json({ message: "Account not found" });
     }
 
-    if (creator.emailVerified) {
+    if (user.emailVerified) {
       return res.status(400).json({ message: "Email is already verified" });
     }
 
@@ -250,12 +305,12 @@ export const resendVerification = async (req, res) => {
     const verificationToken = generateVerificationToken();
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    creator.emailVerificationToken = verificationToken;
-    creator.emailVerificationExpires = verificationExpires;
-    await creator.save();
+    user.emailVerificationToken = verificationToken;
+    user.emailVerificationExpires = verificationExpires;
+    await user.save();
 
     // Send verification email
-    const emailResult = await sendVerificationEmail(creator, verificationToken);
+    const emailResult = await sendVerificationEmail(user, verificationToken);
     
     if (!emailResult.success) {
       return res.status(500).json({ 

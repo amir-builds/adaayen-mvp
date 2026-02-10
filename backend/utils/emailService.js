@@ -46,8 +46,8 @@ export const sendVerificationEmail = async (user, verificationToken) => {
     console.log(`📧 Attempting to send verification email to: ${user.email}`);
     const transporter = await createTransporter();
     
-    // Create verification URL
-    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email/${verificationToken}`;
+    // Create verification URL - Point directly to backend API
+    const verificationUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/verify-email/${verificationToken}`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'noreply@adaayein.com',

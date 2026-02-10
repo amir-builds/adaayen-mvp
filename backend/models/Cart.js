@@ -22,11 +22,22 @@ const cartSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Creator",
+      ref: "User",
       required: true,
       unique: true, // One cart per user
     },
     items: [cartItemSchema],
+    // Cart status and metadata
+    status: {
+      type: String,
+      enum: ['active', 'abandoned', 'converted'],
+      default: 'active'
+    },
+    expiresAt: {
+      type: Date,
+      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      index: { expireAfterSeconds: 0 }
+    }
   },
   { timestamps: true }
 );

@@ -1,6 +1,7 @@
 // controllers/adminController.js
 import Post from "../models/Post.js";
-import Creator from "../models/Creator.js";
+import User from "../models/User.js";
+import CreatorProfile from "../models/CreatorProfile.js";
 
 // GET all posts (admin view - includes non-featured)
 export const getAllPostsAdmin = async (req, res) => {
@@ -45,8 +46,21 @@ export const setFeatureStatus = async (req, res) => {
 // Get all creators (admin view)
 export const getAllCreators = async (req, res) => {
   try {
-    const creators = await Creator.find().select("-password");
-    res.json(creators);
+    // Find all users with creator role
+    const creatorUsers = await User.find({ role: 'creator' }).select("-password");
+    
+    // Get their profiles
+    const creatorsWithProfiles = await Promise.all(
+      creatorUsers.map(async (user) => {
+        const profile = await CreatorProfile.findOne({ user: user._id });
+        return {
+          ...user.toObject(),
+          profile
+        };
+      })
+    );
+    
+    res.json(creatorsWithProfiles);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

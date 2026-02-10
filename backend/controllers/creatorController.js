@@ -1,4 +1,5 @@
-import Creator from "../models/Creator.js";
+import User from "../models/User.js";
+import CreatorProfile from "../models/CreatorProfile.js";
 import Post from "../models/Post.js";
 
 // ✅ Get all creators (public)
@@ -18,20 +19,32 @@ export const getAllCreators = async (req, res) => {
       });
     }
     
-    const query = { role: "creator" };
+    const query = { role: "creator", isActive: true };
     
     // Get total count
-    const totalCreators = await Creator.countDocuments(query);
+    const totalCreators = await User.countDocuments(query);
     const totalPages = Math.ceil(totalCreators / limit);
-    
-    const creators = await Creator.find(query)
+
+    // Find users with creator role and populate creator profile data
+    const creatorUsers = await User.find(query)
       .select("-password")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
     
+    // Populate creator profiles for each user
+    const creatorsWithProfiles = await Promise.all(
+      creatorUsers.map(async (user) => {
+        const profile = await CreatorProfile.findOne({ user: user._id });
+        return {
+          ...user.toObject(),
+          profile
+        };
+      })
+    );
+    
     res.json({
-      creators,
+      creators: creatorsWithProfiles,
       pagination: {
         currentPage: page,
         totalPages,
@@ -49,13 +62,18 @@ export const getAllCreators = async (req, res) => {
 // ✅ Get creator by ID (public)
 export const getCreatorById = async (req, res) => {
   try {
-    const creator = await Creator.findById(req.params.id).select("-password");
+    const user = await User.findById(req.params.id).select("-password");
     
-    if (!creator) {
+    if (!user || user.role !== 'creator') {
       return res.status(404).json({ message: "Creator not found" });
     }
     
-    res.json(creator);
+    const profile = await CreatorProfile.findOne({ user: user._id });
+    
+    res.json({
+      ...user.toObject(),
+      profile
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -64,13 +82,22 @@ export const getCreatorById = async (req, res) => {
 // ✅ Get own profile (protected)
 export const getCreatorProfile = async (req, res) => {
   try {
-    const creator = await Creator.findById(req.user.id).select("-password");
+    const user = await User.findById(req.user.id).select("-password");
     
-    if (!creator) {
-      return res.status(404).json({ message: "Creator not found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
     
-    res.json(creator);
+    if (user.role !== 'creator') {
+      return res.status(403).json({ message: "Access denied. Creator role required." });
+    }
+    
+    const profile = await CreatorProfile.findOne({ user: user._id });
+    
+    res.json({
+      ...user.toObject(),
+      profile
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -79,22 +106,41 @@ export const getCreatorProfile = async (req, res) => {
 // ✅ Update own profile (protected)
 export const updateCreatorProfile = async (req, res) => {
   try {
-    const creator = await Creator.findById(req.user.id);
+    const user = await User.findById(req.user.id);
     
-    if (!creator) {
-      return res.status(404).json({ message: "Creator not found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    if (user.role !== 'creator') {
+      return res.status(403).json({ message: "Access denied. Creator role required." });
     }
 
-    // Update only allowed fields
-    creator.name = req.body.name || creator.name;
-    creator.bio = req.body.bio || creator.bio;
-    creator.profilePic = req.body.profilePic || creator.profilePic;
-
-    const updated = await creator.save();
+    // Update base user fields
+    user.name = req.body.name || user.name;
+    user.profilePic = req.body.profilePic || user.profilePic;
+    user.phone = req.body.phone || user.phone;
     
-    // Return without password
-    const { password, ...creatorData } = updated.toObject();
-    res.json(creatorData);
+    await user.save();
+    
+    // Update creator profile fields
+    const profileUpdate = {};
+    if (req.body.bio !== undefined) profileUpdate.bio = req.body.bio;
+    if (req.body.specialization !== undefined) profileUpdate.specialization = req.body.specialization;
+    if (req.body.experience !== undefined) profileUpdate.experience = req.body.experience;
+    if (req.body.location !== undefined) profileUpdate.location = req.body.location;
+    if (req.body.socialLinks !== undefined) profileUpdate.socialLinks = req.body.socialLinks;
+    
+    const profile = await CreatorProfile.findOneAndUpdate(
+      { user: user._id },
+      profileUpdate,
+      { new: true }
+    );
+    
+    res.json({
+      ...user.toObject(),
+      profile
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

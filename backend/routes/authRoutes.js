@@ -1,5 +1,6 @@
 import express from "express";
-import { registerCreator, loginCreator, verifyEmail, resendVerification } from "../controllers/authController.js";
+import { registerUser, loginUser, verifyEmail, resendVerification, getUserProfile, updateUserProfile } from "../controllers/authController.js";
+import { protect } from "../middleware/auth.js";
 import { body } from "express-validator";
 import { validate } from "../middleware/validate.js";
 
@@ -21,7 +22,7 @@ router.post(
     body("role").optional().isIn(['customer', 'creator']).withMessage("Role must be 'customer' or 'creator'"),
   ],
   validate,
-  registerCreator
+  registerUser
 );
 
 router.post(
@@ -31,8 +32,12 @@ router.post(
     body("password").notEmpty().withMessage("Password required"),
   ],
   validate,
-  loginCreator
+  loginUser
 );
+
+// ✅ PROFILE ROUTES
+router.get("/profile", protect, getUserProfile);
+router.put("/profile", protect, updateUserProfile);
 
 // ✅ EMAIL VERIFICATION ROUTES
 router.get("/verify-email/:token", verifyEmail);
