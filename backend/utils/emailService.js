@@ -46,8 +46,16 @@ export const sendVerificationEmail = async (user, verificationToken) => {
     console.log(`📧 Attempting to send verification email to: ${user.email}`);
     const transporter = await createTransporter();
     
+    // Determine backend URL based on environment
+    const getBackendURL = () => {
+      if (process.env.NODE_ENV === 'development') {
+        return 'http://localhost:5000';
+      }
+      return process.env.BACKEND_URL || 'http://localhost:5000';
+    };
+    
     // Create verification URL - Point directly to backend API
-    const verificationUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/verify-email/${verificationToken}`;
+    const verificationUrl = `${getBackendURL()}/api/auth/verify-email/${verificationToken}`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'noreply@adaayein.com',

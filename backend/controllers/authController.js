@@ -248,9 +248,19 @@ export const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
     
+    // Determine frontend URL based on environment
+    const getFrontendURL = () => {
+      if (process.env.NODE_ENV === 'development') {
+        return 'http://localhost:5173';
+      }
+      return process.env.FRONTEND_URL || 'http://localhost:5173';
+    };
+    
+    const frontendURL = getFrontendURL();
+    
     if (!token) {
       // Redirect to frontend with error
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/?verification=error&message=missing-token`);
+      return res.redirect(`${frontendURL}/?verification=error&message=missing-token`);
     }
 
     const user = await User.findOne({
@@ -260,7 +270,7 @@ export const verifyEmail = async (req, res) => {
 
     if (!user) {
       // Redirect to frontend with error
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/?verification=error&message=invalid-token`);
+      return res.redirect(`${frontendURL}/?verification=error&message=invalid-token`);
     }
 
     // ✅ Mark email as verified
@@ -273,7 +283,7 @@ export const verifyEmail = async (req, res) => {
     const jwtToken = generateToken(user._id, user.role);
 
     // Redirect to frontend with success and token
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/?verification=success&token=${jwtToken}&user=${encodeURIComponent(JSON.stringify({
+    res.redirect(`${frontendURL}/?verification=success&token=${jwtToken}&user=${encodeURIComponent(JSON.stringify({
       id: user._id,
       name: user.name,
       email: user.email,
@@ -283,7 +293,10 @@ export const verifyEmail = async (req, res) => {
   } catch (error) {
     console.error("Email verification error:", error);
     // Redirect to frontend with error
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/?verification=error&message=server-error`);
+    const frontendURL = process.env.NODE_ENV === 'development' 
+      ? 'http://localhost:5173' 
+      : process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendURL}/?verification=error&message=server-error`);
   }
 };
 

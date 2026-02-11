@@ -1,53 +1,64 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 
 export default function VerifyEmail() {
   const { token } = useParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
+  const location = useLocation();
+  const [status, setStatus] = useState('verifying');
   const [message, setMessage] = useState('');
   const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    const verifyEmail = async () => {
-      try {
-        if (!token) {
-          setStatus('error');
-          setMessage('Verification token is missing');
-          return;
-        }
+    const handleEmailVerification = () => {
+      // Check URL parameters for verification status
+      const urlParams = new URLSearchParams(location.search);
+      const verification = urlParams.get('verification');
+      const urlToken = urlParams.get('token');
+      const userParam = urlParams.get('user');
+      const errorMessage = urlParams.get('message');
 
-        const response = await api.get(`/auth/verify-email/${token}`);
-        
-        if (response.data.verified) {
+      if (verification === 'success' && urlToken && userParam) {
+        try {
+          const user = JSON.parse(decodeURIComponent(userParam));
           setStatus('success');
-          setMessage(response.data.message);
-          setUserData(response.data.creator);
+          setMessage('Email verification successful!');
+          setUserData(user);
           
           // Auto-login user after successful verification
-          if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('creator', JSON.stringify(response.data.creator));
-            window.dispatchEvent(new Event('user:login'));
-            
-            // Redirect to dashboard after 3 seconds
-            setTimeout(() => {
-              navigate('/');
-            }, 3000);
-          }
-        } else {
+          localStorage.setItem('token', urlToken);
+          localStorage.setItem('creator', JSON.stringify(user));
+          window.dispatchEvent(new Event('user:login'));
+          
+          // Redirect to homepage after 3 seconds
+          setTimeout(() => {
+            navigate('/');
+          }, 3000);
+          
+        } catch (error) {
+          console.error('Error parsing user data:', error);
           setStatus('error');
-          setMessage('Email verification failed');
+          setMessage('Error processing verification data');
         }
-      } catch (error) {
+      } else if (verification === 'error') {
         setStatus('error');
-        setMessage(error.response?.data?.message || 'Verification failed. The link may be invalid or expired.');
+        const errorMessages = {
+          'missing-token': 'Verification token is missing',
+          'invalid-token': 'Invalid or expired verification token',
+          'server-error': 'Server error during verification'
+        };
+        setMessage(errorMessages[errorMessage] || 'Email verification failed');
+      } else if (token) {
+        // If we have a token in the URL path, redirect to the backend for verification
+        window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-email/${token}`;
+      } else {
+        setStatus('error');
+        setMessage('Invalid verification link');
       }
     };
 
-    verifyEmail();
-  }, [token, navigate]);
+    handleEmailVerification();
+  }, [token, location.search, navigate]);
 
   if (status === 'verifying') {
     return (

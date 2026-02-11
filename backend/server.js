@@ -17,8 +17,30 @@ const app = express();
 connectDB();
 
 // CORS configuration with environment variable support
+const allowedOrigins = [
+  'http://localhost:5173',  // Local development
+  'http://localhost:3000',  // Alternative local port
+  'https://adaayein.vercel.app',  // Production frontend
+  process.env.FRONTEND_ORIGIN, // Additional configured origin
+].filter(Boolean); // Remove any undefined values
+
 app.use(cors({
-  origin: process.env.FRONTEND_ORIGIN || '*',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // In development, allow all origins
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    return callback(new Error(msg), false);
+  },
   credentials: true,
 }));
 

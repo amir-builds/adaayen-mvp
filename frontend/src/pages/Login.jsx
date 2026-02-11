@@ -17,9 +17,9 @@ export default function Login() {
     setNeedsVerification(false);
     try {
       const res = await api.post('/auth/login', { email, password });
-      const { token, creator } = res.data;
+      const { token, user } = res.data; // Changed from 'creator' to 'user'
       localStorage.setItem('token', token);
-      localStorage.setItem('creator', JSON.stringify(creator));
+      localStorage.setItem('creator', JSON.stringify(user)); // Store user data as 'creator' for compatibility
       // notify other components
       window.dispatchEvent(new Event('user:login'));
       navigate('/');
