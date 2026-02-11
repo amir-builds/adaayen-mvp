@@ -58,15 +58,22 @@ export const registerUser = async (req, res) => {
 
     await newUser.save();
 
-    // Create role-specific profile
+    // Create role-specific profile with error handling
     let roleSpecificData = null;
-    if (userRole === 'customer') {
-      roleSpecificData = await Customer.create({ user: newUser._id });
-    } else if (userRole === 'creator') {
-      roleSpecificData = await CreatorProfile.create({ 
-        user: newUser._id,
-        bio: bio || ""
-      });
+    try {
+      if (userRole === 'customer') {
+        roleSpecificData = await Customer.create({ user: newUser._id });
+      } else if (userRole === 'creator') {
+        roleSpecificData = await CreatorProfile.create({ 
+          user: newUser._id,
+          bio: bio || ""
+        });
+      }
+    } catch (profileError) {
+      // If profile creation fails, delete the user to prevent orphaned records
+      console.error('❌ Profile creation failed:', profileError);
+      await User.findByIdAndDelete(newUser._id);
+      throw new Error('Registration failed during profile creation. Please try again.');
     }
 
     // ✅ Send verification email (don't block registration if email fails)

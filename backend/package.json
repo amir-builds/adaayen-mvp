@@ -9,6 +9,7 @@
     "dev": "nodemon server.js",
     "cleanup:images": "node scripts/cleanup-orphaned-images.js",
     "cleanup:images:dry-run": "node scripts/cleanup-orphaned-images.js --dry-run",
+    "cleanup:null-creators": "node scripts/cleanup-null-creators.js",
     "migrate:schema": "node scripts/migrate-schema.js",
     "test:schema": "node scripts/test-schema.js",
     "cleanup:collections": "node scripts/cleanup-collections.js",
