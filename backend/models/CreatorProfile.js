@@ -141,7 +141,6 @@ const creatorSchema = new mongoose.Schema(
 );
 
 // ===== INDEXES =====
-creatorSchema.index({ user: 1 });
 creatorSchema.index({ isVerified: 1 });
 creatorSchema.index({ isFeatured: 1, featuredOrder: 1 });
 creatorSchema.index({ 'analytics.totalFollowers': -1 });

@@ -92,7 +92,6 @@ const customerSchema = new mongoose.Schema(
 );
 
 // ===== INDEXES =====
-customerSchema.index({ user: 1 });
 customerSchema.index({ tier: 1 });
 customerSchema.index({ totalSpent: -1 });
 customerSchema.index({ 'wishlist.fabric': 1 });

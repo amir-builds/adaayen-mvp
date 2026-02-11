@@ -134,11 +134,9 @@ const adminSchema = new mongoose.Schema(
 );
 
 // ===== INDEXES =====
-adminSchema.index({ user: 1 });
 adminSchema.index({ adminRole: 1 });
 adminSchema.index({ department: 1 });
 adminSchema.index({ isActive: 1, status: 1 });
-adminSchema.index({ employeeId: 1 });
 adminSchema.index({ 'actionHistory.timestamp': -1 });
 
 // ===== METHODS =====

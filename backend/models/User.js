@@ -9,8 +9,7 @@ const userSchema = new mongoose.Schema(
       required: true, 
       unique: true,
       lowercase: true,
-      trim: true,
-      index: true
+      trim: true
     },
     password: { 
       type: String, 
@@ -26,8 +25,7 @@ const userSchema = new mongoose.Schema(
     role: { 
       type: String, 
       enum: ["customer", "creator", "admin"], 
-      required: true,
-      index: true
+      required: true
     },
 
     // ===== EMAIL VERIFICATION =====
@@ -79,7 +77,6 @@ const userSchema = new mongoose.Schema(
 );
 
 // ===== INDEXES FOR PERFORMANCE =====
-userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ createdAt: -1 });
 userSchema.index({ isActive: 1, role: 1 });
