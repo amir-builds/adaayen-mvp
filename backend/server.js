@@ -70,3 +70,14 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// Temporary cleanup endpoint - remove after use
+app.get('/admin/cleanup-null-creators', async (req, res) => {
+  // Add authentication check here
+  const { execSync } = await import('child_process');
+  try {
+    const output = execSync('npm run cleanup:null-creators', { encoding: 'utf8' });
+    res.json({ success: true, output });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
