@@ -58,7 +58,7 @@ export const sendVerificationEmail = async (user, verificationToken) => {
     const verificationUrl = `${getBackendURL()}/api/auth/verify-email/${verificationToken}`;
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'noreply@adaayein.com',
+      from: `"Adaayein" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: '🎨 Welcome to Adaayein - Verify Your Email',
       html: `
@@ -176,7 +176,7 @@ export const sendPasswordResetEmail = async (user, resetToken) => {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'noreply@adaayein.com',
+      from: `"Adaayein" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: '🔐 Adaayein - Reset Your Password',
       html: `

@@ -21,7 +21,7 @@ export default function AdminLogin({ onSuccess }) {
         return;
       }
       // Ensure role is admin
-      if (data?.creator?.role !== 'admin') {
+      if (data?.user?.role !== 'admin') {
         setError('Account is not an admin');
         setLoading(false);
         return;
