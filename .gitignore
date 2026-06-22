@@ -22,3 +22,6 @@ build/
 
 # coverage
 coverage/
+
+# interview prep
+INTERVIEW_PREP.md

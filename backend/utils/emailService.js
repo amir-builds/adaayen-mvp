@@ -46,11 +46,8 @@ export const sendVerificationEmail = async (user, verificationToken) => {
     console.log(`📧 Attempting to send verification email to: ${user.email}`);
     const transporter = await createTransporter();
     
-    // Determine backend URL based on environment
+    // Always use BACKEND_URL env variable (set correctly per environment)
     const getBackendURL = () => {
-      if (process.env.NODE_ENV === 'development') {
-        return 'http://localhost:5000';
-      }
       return process.env.BACKEND_URL || 'http://localhost:5000';
     };
     
