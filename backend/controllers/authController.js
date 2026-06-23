@@ -255,15 +255,8 @@ export const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
     
-    // Determine frontend URL based on environment
-    const getFrontendURL = () => {
-      if (process.env.NODE_ENV === 'development') {
-        return 'http://localhost:5173';
-      }
-      return process.env.FRONTEND_URL || 'http://localhost:5173';
-    };
-    
-    const frontendURL = getFrontendURL();
+    // Always use FRONTEND_URL env variable (set per environment)
+    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
     
     if (!token) {
       // Redirect to frontend with error
@@ -299,10 +292,7 @@ export const verifyEmail = async (req, res) => {
     }))}`);
   } catch (error) {
     console.error("Email verification error:", error);
-    // Redirect to frontend with error
-    const frontendURL = process.env.NODE_ENV === 'development' 
-      ? 'http://localhost:5173' 
-      : process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.redirect(`${frontendURL}/?verification=error&message=server-error`);
   }
 };
@@ -334,8 +324,7 @@ export const resendVerification = async (req, res) => {
     
     if (!emailResult.success) {
       return res.status(500).json({ 
-        message: "Failed to send verification email. Please try again.",
-        debug_error: emailResult.error
+        message: "Failed to send verification email. Please try again."
       });
     }
 
