@@ -24,8 +24,12 @@ const sendViaBrevo = async (to, subject, html, text) => {
       subject,
       htmlContent: html,
       textContent: text,
-      trackClicks: false,  // prevent Brevo from wrapping links with its tracker
+      trackClicks: false,
       trackOpens: false,
+      headers: {
+        'X-Mailin-Track-Click': '0',  // force disable click tracking
+        'X-Mailin-Track-Open': '0',
+      },
     }),
   });
 
