@@ -5,15 +5,15 @@ import crypto from 'crypto';
 const createTransporter = async () => {
   try {
     if (process.env.EMAIL_SERVICE === 'gmail') {
-      console.log('📧 Setting up Gmail transporter...');
+      console.log('📧 Setting up Gmail transporter (port 587 STARTTLS)...');
       return nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // STARTTLS — works on Render (port 465 is blocked)
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD,
         },
-        debug: true,
-        logger: true
       });
     }
     
