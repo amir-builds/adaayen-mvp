@@ -24,6 +24,8 @@ const sendViaBrevo = async (to, subject, html, text) => {
       subject,
       htmlContent: html,
       textContent: text,
+      trackClicks: false,  // prevent Brevo from wrapping links with its tracker
+      trackOpens: false,
     }),
   });
 
