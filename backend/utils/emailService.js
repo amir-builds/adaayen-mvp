@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
-import { Resend } from 'resend';
 import crypto from 'crypto';
+
 
 // Generate verification token
 export const generateVerificationToken = () => {
@@ -9,17 +9,28 @@ export const generateVerificationToken = () => {
 
 // ─── Senders ────────────────────────────────────────────────────────────────
 
-// Resend HTTP API — works on Render (no SMTP port needed)
-const sendViaResend = async (to, subject, html, text) => {
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const { data, error } = await resend.emails.send({
-    from: 'Adaayein <onboarding@resend.dev>',
-    to,
-    subject,
-    html,
-    text,
+// Brevo (Sendinblue) HTTP API — works on Render, no domain required
+const sendViaBrevo = async (to, subject, html, text) => {
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: 'Adaayein', email: process.env.EMAIL_USER },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      textContent: text,
+    }),
   });
-  if (error) throw new Error(error.message);
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || `Brevo error: ${response.status}`);
+  }
   return data;
 };
 
@@ -40,13 +51,13 @@ const sendViaGmail = async ({ to, subject, html, text }) => {
   });
 };
 
-// Pick sender: Resend if API key is set, otherwise Gmail SMTP
+// Pick sender: Brevo if API key is set, otherwise Gmail SMTP
 const sendEmail = async ({ to, subject, html, text }) => {
-  if (process.env.RESEND_API_KEY) {
-    console.log('📧 Using Resend HTTP API');
-    return sendViaResend(to, subject, html, text);
+  if (process.env.BREVO_API_KEY) {
+    console.log('📧 Using Brevo HTTP API');
+    return sendViaBrevo(to, subject, html, text);
   }
-  console.log('📧 Using Gmail SMTP fallback (RESEND_API_KEY not set)');
+  console.log('📧 Using Gmail SMTP fallback (BREVO_API_KEY not set)');
   return sendViaGmail({ to, subject, html, text });
 };
 
