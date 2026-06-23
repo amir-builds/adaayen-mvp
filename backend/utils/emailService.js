@@ -73,8 +73,8 @@ export const sendVerificationEmail = async (user, verificationToken) => {
   try {
     console.log(`📧 Sending verification email to: ${user.email}`);
 
-    const backendURL = process.env.BACKEND_URL || 'http://localhost:5000';
-    const verificationUrl = `${backendURL}/api/auth/verify-email/${verificationToken}`;
+    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verificationUrl = `${frontendURL}/verify-email/${verificationToken}`;
 
     const subject = '🎨 Welcome to Adaayein - Verify Your Email';
     const html = `
