@@ -43,8 +43,10 @@ const sendViaGmail = async ({ to, subject, html, text }) => {
 // Pick sender: Resend if API key is set, otherwise Gmail SMTP
 const sendEmail = async ({ to, subject, html, text }) => {
   if (process.env.RESEND_API_KEY) {
+    console.log('📧 Using Resend HTTP API');
     return sendViaResend(to, subject, html, text);
   }
+  console.log('📧 Using Gmail SMTP fallback (RESEND_API_KEY not set)');
   return sendViaGmail({ to, subject, html, text });
 };
 
