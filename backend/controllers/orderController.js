@@ -3,6 +3,10 @@ import crypto from 'crypto';
 import Cart from '../models/Cart.js';
 import Order from '../models/Order.js';
 
+if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+  console.error('❌ RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is not set in environment variables!');
+}
+
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
