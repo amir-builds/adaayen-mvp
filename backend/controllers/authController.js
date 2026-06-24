@@ -4,7 +4,7 @@ import CreatorProfile from "../models/CreatorProfile.js";
 import Admin from "../models/Admin.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { generateOTP, sendOTPEmail } from '../utils/emailService.js';
+import { generateOTP, sendOTPEmail, sendPasswordResetEmail } from '../utils/emailService.js';
 import { validateEmailDomain, isValidEmailDomain } from '../utils/emailValidation.js';
 
 // Helper to generate JWT with role
@@ -335,5 +335,69 @@ export const resendVerification = async (req, res) => {
   } catch (error) {
     console.error('Resend OTP error:', error);
     res.status(500).json({ message: 'Failed to resend OTP' });
+  }
+};
+// Forgot Password — send OTP to email
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return res.status(200).json({ message: 'If that email exists, a reset code has been sent.' });
+    }
+
+    const otp = generateOTP();
+    user.passwordResetToken = otp;
+    user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    const emailResult = await sendPasswordResetEmail(user, otp);
+    if (!emailResult.success) {
+      return res.status(500).json({ message: 'Failed to send reset code. Please try again.' });
+    }
+
+    res.status(200).json({ message: 'If that email exists, a reset code has been sent.' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  }
+};
+
+// Reset Password — verify OTP and set new password
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Email, OTP, and new password are required.' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || !user.passwordResetToken || !user.passwordResetExpires) {
+      return res.status(400).json({ message: 'Invalid or expired reset code.' });
+    }
+
+    if (new Date() > user.passwordResetExpires) {
+      return res.status(400).json({ message: 'Reset code has expired. Please request a new one.' });
+    }
+
+    if (user.passwordResetToken !== otp.trim()) {
+      return res.status(400).json({ message: 'Invalid reset code. Please check and try again.' });
+    }
+
+    // Update password (pre-save hook will hash it)
+    user.password = newPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    user.failedLoginAttempts = 0;
+    user.lockedUntil = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successfully. You can now log in.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };

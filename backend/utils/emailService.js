@@ -132,30 +132,51 @@ export const sendOTPEmail = async (user, otp) => {
   }
 };
 
-export const sendPasswordResetEmail = async (user, resetToken) => {
+export const sendPasswordResetEmail = async (user, otp) => {
   try {
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
-    const subject = '🔐 Adaayein - Reset Your Password';
+    const subject = '🔐 Adaayein - Password Reset Code';
     const html = `
-      <div style="max-width:520px;margin:0 auto;font-family:Arial,sans-serif;">
-        <div style="background:#ef4444;color:white;padding:24px;text-align:center;border-radius:12px 12px 0 0;">
-          <h1 style="margin:0;">🔐 Password Reset</h1>
-        </div>
-        <div style="padding:32px;background:#fff;">
-          <h2>Hi ${user.name},</h2>
-          <p>Click the button below to reset your password. This link expires in <strong>15 minutes</strong>.</p>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="${resetUrl}" style="background:#ef4444;color:white;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;">Reset Password</a>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f3f4f6; }
+          .wrapper { max-width: 520px; margin: 40px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+          .header { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 32px 24px; text-align: center; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .body { padding: 32px 24px; }
+          .otp-box { background: #fef2f2; border: 2px dashed #ef4444; border-radius: 12px; text-align: center; padding: 24px; margin: 24px 0; }
+          .otp-label { font-size: 13px; color: #6b7280; margin-bottom: 8px; }
+          .otp-code { font-size: 42px; font-weight: 900; letter-spacing: 12px; color: #ef4444; font-family: 'Courier New', monospace; }
+          .expiry { font-size: 13px; color: #ef4444; margin-top: 10px; font-weight: 600; }
+          .footer { text-align: center; padding: 20px; color: #9ca3af; font-size: 12px; border-top: 1px solid #f3f4f6; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="header">
+            <h1>🔐 Password Reset</h1>
+            <p style="margin:6px 0 0;opacity:.85;font-size:14px;">Adaayein — Fabric Marketplace</p>
           </div>
-          <p style="font-size:13px;color:#6b7280;">Or paste this in your browser: ${resetUrl}</p>
-          <p style="font-size:13px;color:#6b7280;">If you didn't request this, ignore this email.</p>
+          <div class="body">
+            <h2 style="margin-top:0;color:#1f2937;">Hi ${user.name},</h2>
+            <p style="color:#4b5563;">Use the code below to reset your password. It expires in <strong>10 minutes</strong>.</p>
+            <div class="otp-box">
+              <div class="otp-label">Your password reset code</div>
+              <div class="otp-code">${otp}</div>
+              <div class="expiry">⏱ Expires in 10 minutes</div>
+            </div>
+            <p style="color:#6b7280;font-size:14px;">If you didn't request a password reset, you can safely ignore this email. Your password will not change.</p>
+          </div>
+          <div class="footer">© 2026 Adaayein — Fabric Marketplace & Designer Showcase</div>
         </div>
-      </div>
+      </body>
+      </html>
     `;
-    const text = `Hi ${user.name},\n\nReset your password: ${resetUrl}\n\nExpires in 15 minutes.\n\nAdaayein Team`;
+    const text = `Hi ${user.name},\n\nYour Adaayein password reset code is: ${otp}\n\nThis code expires in 10 minutes.\n\nIf you didn't request this, ignore this email.\n\nAdaayein Team`;
 
     await sendEmail({ to: user.email, subject, html, text });
-    console.log('🔐 Password reset email sent!');
+    console.log('🔐 Password reset OTP sent!');
     return { success: true };
   } catch (error) {
     console.error('❌ Password reset email failed:', error.message);

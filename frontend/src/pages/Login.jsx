@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 
 export default function Login() {
@@ -12,6 +12,8 @@ export default function Login() {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
+  const [searchParams] = useSearchParams();
+  const resetSuccess = searchParams.get('reset') === 'success';
   const navigate = useNavigate();
 
   const onSubmit = async (e) => {
@@ -69,6 +71,12 @@ export default function Login() {
   return (
     <div className="max-w-md mx-auto mt-12 bg-white p-6 rounded-lg shadow">
       <h2 className="text-2xl font-bold mb-4">Login</h2>
+
+      {resetSuccess && (
+        <div className="mb-4 p-3 bg-green-100 border border-green-300 text-green-700 rounded text-sm">
+          ✅ Password reset successfully! You can now log in.
+        </div>
+      )}
 
       {error && !showOTP && (
         <div className={`mb-4 p-3 rounded border ${needsVerification ? 'bg-yellow-100 border-yellow-300 text-yellow-800' : 'bg-red-100 border-red-300 text-red-700'}`}>
@@ -162,6 +170,12 @@ export default function Login() {
             placeholder="Password"
             required
           />
+          <div className="text-right -mt-2">
+            <Link to="/forgot-password" className="text-xs text-purple-600 hover:text-purple-700">
+              Forgot password?
+            </Link>
+          </div>
+
           <button type="submit" className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700">
             Login
           </button>

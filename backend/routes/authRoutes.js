@@ -1,6 +1,6 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
-import { registerUser, loginUser, verifyOTP, resendVerification, getUserProfile, updateUserProfile } from "../controllers/authController.js";
+import { registerUser, loginUser, verifyOTP, resendVerification, getUserProfile, updateUserProfile, forgotPassword, resetPassword } from "../controllers/authController.js";
 import { protect } from "../middleware/auth.js";
 import { body } from "express-validator";
 import { validate } from "../middleware/validate.js";
@@ -89,6 +89,40 @@ router.post(
   [body("email").isEmail().withMessage("Valid email required")],
   validate,
   resendVerification
+);
+
+// ✅ PASSWORD RESET ROUTES
+const forgotLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { message: 'Too many reset requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.post(
+  '/forgot-password',
+  forgotLimiter,
+  [body('email').isEmail().withMessage('Valid email required')],
+  validate,
+  forgotPassword
+);
+
+router.post(
+  '/reset-password',
+  otpLimiter,
+  [
+    body('email').isEmail().withMessage('Valid email required'),
+    body('otp').notEmpty().withMessage('OTP required'),
+    body('newPassword')
+      .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+      .matches(/[A-Z]/).withMessage('Must contain an uppercase letter')
+      .matches(/[a-z]/).withMessage('Must contain a lowercase letter')
+      .matches(/[0-9]/).withMessage('Must contain a number')
+      .matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('Must contain a special character'),
+  ],
+  validate,
+  resetPassword
 );
 
 export default router;
