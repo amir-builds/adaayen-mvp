@@ -8,34 +8,27 @@ export const generateOTP = () =>
 
 // ─── Senders ─────────────────────────────────────────────────────────────────
 
-// Mailjet HTTP API — works on Render, tracking disabled
-const sendViaMailjet = async (to, subject, html, text) => {
-  const credentials = Buffer.from(
-    `${process.env.MAILJET_API_KEY}:${process.env.MAILJET_SECRET_KEY}`
-  ).toString('base64');
-
-  const response = await fetch('https://api.mailjet.com/v3.1/send', {
+// Brevo HTTP API — works on Render (no SMTP needed), tracking irrelevant since OTP has no links
+const sendViaBrevo = async (to, subject, html, text) => {
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${credentials}`,
-      'Content-Type': 'application/json',
+      'accept': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
-      Messages: [{
-        From: { Email: process.env.EMAIL_USER, Name: 'Adaayein' },
-        To: [{ Email: to }],
-        Subject: subject,
-        HTMLPart: html,
-        TextPart: text,
-        TrackClicks: 'disabled',
-        TrackOpens: 'disabled',
-      }],
+      sender: { name: 'Adaayein', email: process.env.EMAIL_USER },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      textContent: text,
     }),
   });
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.ErrorMessage || `Mailjet error: ${response.status}`);
+    throw new Error(data.message || `Brevo error: ${response.status}`);
   }
   return data;
 };
@@ -58,11 +51,11 @@ const sendViaGmail = async ({ to, subject, html, text }) => {
 };
 
 const sendEmail = async ({ to, subject, html, text }) => {
-  if (process.env.MAILJET_API_KEY) {
-    console.log('📧 Using Mailjet HTTP API');
-    return sendViaMailjet(to, subject, html, text);
+  if (process.env.BREVO_API_KEY) {
+    console.log('📧 Using Brevo HTTP API');
+    return sendViaBrevo(to, subject, html, text);
   }
-  console.log('📧 Using Gmail SMTP (local dev)');
+  console.log('📧 Using Gmail SMTP (local dev) — install BREVO_API_KEY on Render for production');
   return sendViaGmail({ to, subject, html, text });
 };
 
