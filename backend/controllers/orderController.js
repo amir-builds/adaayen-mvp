@@ -3,9 +3,7 @@ import crypto from 'crypto';
 import Cart from '../models/Cart.js';
 import Order from '../models/Order.js';
 
-if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-  console.error('❌ RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is not set in environment variables!');
-}
+import { sendNewOrderNotification } from '../utils/emailService.js';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -140,6 +138,13 @@ export const verifyPayment = async (req, res) => {
     });
 
     await order.save();
+
+    // Send admin notification email (fire-and-forget)
+    sendNewOrderNotification({
+      order: await order.populate('items.fabric', 'name'),
+      customer: req.user,
+      shippingAddress,
+    });
 
     // Clear the cart after successful order
     cart.items = [];

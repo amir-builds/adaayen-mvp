@@ -183,3 +183,64 @@ export const sendPasswordResetEmail = async (user, otp) => {
     return { success: false, error: error.message };
   }
 };
+
+// ─── New Order Notification (sent to admin) ───────────────────────────────────
+export const sendNewOrderNotification = async ({ order, customer, shippingAddress }) => {
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+  if (!adminEmail) return;
+
+  try {
+    const itemsHtml = order.items.map(item =>
+      `<tr>
+        <td style="padding:8px;border-bottom:1px solid #f3f4f6;">${item.fabric?.name || 'Fabric'}</td>
+        <td style="padding:8px;border-bottom:1px solid #f3f4f6;text-align:center;">${item.quantity}m</td>
+        <td style="padding:8px;border-bottom:1px solid #f3f4f6;text-align:right;">₹${item.totalPrice.toFixed(2)}</td>
+      </tr>`
+    ).join('');
+
+    const subject = `🛒 New Order — ${order.orderNumber} (₹${order.total.toFixed(2)})`;
+    const html = `
+      <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f9fafb;margin:0;padding:20px;">
+      <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;padding:24px;text-align:center;">
+          <h1 style="margin:0;font-size:20px;">🛒 New Order Received!</h1>
+          <p style="margin:6px 0 0;opacity:.85;font-size:14px;">Adaayein — Someone just placed an order</p>
+        </div>
+        <div style="padding:24px;">
+          <p style="margin:0 0 16px;"><strong>Order Number:</strong> <span style="font-family:monospace;color:#7c3aed;">${order.orderNumber}</span></p>
+          <p style="margin:0 0 16px;"><strong>Customer:</strong> ${customer.name} (${customer.email})</p>
+
+          <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+            <thead><tr style="background:#f3f4f6;">
+              <th style="padding:8px;text-align:left;font-size:13px;">Item</th>
+              <th style="padding:8px;text-align:center;font-size:13px;">Qty</th>
+              <th style="padding:8px;text-align:right;font-size:13px;">Price</th>
+            </tr></thead>
+            <tbody>${itemsHtml}</tbody>
+          </table>
+
+          <p style="text-align:right;font-size:18px;font-weight:bold;color:#7c3aed;">Total: ₹${order.total.toFixed(2)}</p>
+
+          <div style="background:#f9fafb;border-radius:8px;padding:12px;margin-top:16px;">
+            <p style="margin:0 0 4px;font-weight:bold;">📦 Ship To:</p>
+            <p style="margin:0;font-size:14px;color:#4b5563;">
+              ${shippingAddress.name} · ${shippingAddress.phone}<br>
+              ${shippingAddress.street}${shippingAddress.landmark ? ', ' + shippingAddress.landmark : ''}<br>
+              ${shippingAddress.city}, ${shippingAddress.state} — ${shippingAddress.postalCode}
+            </p>
+          </div>
+
+          <p style="margin:16px 0 0;font-size:13px;color:#6b7280;">
+            Payment ID: <code>${order.paymentDetails?.razorpayPaymentId}</code>
+          </p>
+        </div>
+      </div>
+      </body></html>
+    `;
+
+    await sendEmail({ to: adminEmail, subject, html, text: `New order ${order.orderNumber} — ₹${order.total.toFixed(2)} from ${customer.name} (${customer.email})` });
+  } catch (err) {
+    // Don't let notification failure block the order success
+    console.error('Order notification email failed:', err.message);
+  }
+};
