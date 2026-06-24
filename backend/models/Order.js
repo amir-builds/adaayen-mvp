@@ -40,7 +40,11 @@ const orderSchema = new mongoose.Schema(
     orderNumber: {
       type: String,
       unique: true,
-      required: true
+      default: () => {
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `ADY${timestamp}${random}`;
+      }
     },
     
     // ===== CUSTOMER INFO =====
@@ -194,14 +198,7 @@ orderSchema.index({ 'shippingDetails.trackingNumber': 1 });
 
 // ===== PRE-SAVE MIDDLEWARE =====
 orderSchema.pre('save', function(next) {
-  // Generate order number if not exists
-  if (!this.orderNumber) {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    this.orderNumber = `ADY${timestamp}${random}`;
-  }
-  
-  // Add to timeline when status changes
+  // Add to timeline when status changes on existing docs
   if (this.isModified('status') && !this.isNew) {
     this.timeline.push({
       status: this.status,
@@ -209,7 +206,6 @@ orderSchema.pre('save', function(next) {
       note: `Order status changed to ${this.status}`
     });
   }
-  
   next();
 });
 

@@ -153,12 +153,7 @@ export const verifyPayment = async (req, res) => {
     });
   } catch (error) {
     console.error('Verify payment error:', error);
-    // Return detailed error for debugging — remove before final production
-    res.status(500).json({
-      message: 'Order confirmation failed. Contact support if amount was debited.',
-      debug_error: error?.message || String(error),
-      debug_name: error?.name,
-    });
+    res.status(500).json({ message: 'Order confirmation failed. Contact support if amount was debited.' });
   }
 };
 
