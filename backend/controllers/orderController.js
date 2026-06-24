@@ -31,6 +31,9 @@ export const createPaymentOrder = async (req, res) => {
       }
     }
 
+    // Receipt must be ≤ 40 chars for Razorpay
+    const receipt = `rcpt_${Date.now()}`;
+
     // Calculate total in paise (Razorpay uses smallest currency unit)
     const subtotal = cart.items.reduce(
       (sum, item) => sum + item.quantity * item.pricePerMeter,
@@ -46,7 +49,7 @@ export const createPaymentOrder = async (req, res) => {
     const razorpayOrder = await razorpay.orders.create({
       amount: amountInPaise,
       currency: 'INR',
-      receipt: `cart_${req.user._id}_${Date.now()}`,
+      receipt,
       notes: {
         userId: req.user._id.toString(),
         userEmail: req.user.email,

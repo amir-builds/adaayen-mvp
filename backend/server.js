@@ -15,6 +15,9 @@ import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 
+// Trust Render's reverse proxy so express-rate-limit can identify real IPs
+app.set('trust proxy', 1);
+
 connectDB();
 
 // CORS configuration with environment variable support
