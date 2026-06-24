@@ -4,7 +4,7 @@ import CreatorProfile from "../models/CreatorProfile.js";
 import Admin from "../models/Admin.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { generateVerificationToken, sendVerificationEmail } from '../utils/emailService.js';
+import { generateOTP, sendOTPEmail } from '../utils/emailService.js';
 import { validateEmailDomain, isValidEmailDomain } from '../utils/emailValidation.js';
 
 // Helper to generate JWT with role
@@ -41,19 +41,19 @@ export const registerUser = async (req, res) => {
     const allowedRoles = ['customer', 'creator'];
     const userRole = allowedRoles.includes(role) ? role : 'customer';
 
-    // ✅ Generate email verification token
-    const verificationToken = generateVerificationToken();
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // ✅ Generate 6-digit OTP (expires in 10 minutes)
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
     // Create new user (password will be hashed by pre-save hook)
     const newUser = new User({
       name,
       email,
       password,
-      role: userRole, // Only 'customer' or 'creator', never 'admin'
-      emailVerified: false, // ✅ Account starts unverified
-      emailVerificationToken: verificationToken,
-      emailVerificationExpires: verificationExpires,
+      role: userRole,
+      emailVerified: false,
+      emailOTP: otp,
+      emailOTPExpires: otpExpires,
     });
 
     await newUser.save();
@@ -76,17 +76,14 @@ export const registerUser = async (req, res) => {
       throw new Error('Registration failed during profile creation. Please try again.');
     }
 
-    // ✅ Send verification email (don't block registration if email fails)
-    const emailResult = await sendVerificationEmail(newUser, verificationToken);
-    
+    // ✅ Send OTP email
+    const emailResult = await sendOTPEmail(newUser, otp);
     if (!emailResult.success) {
-      console.error('❌ Failed to send verification email:', emailResult.error);
-      // Continue registration even if email fails - user can request resend later
+      console.error('❌ Failed to send OTP email:', emailResult.error);
     }
 
-    // ✅ DON'T generate JWT token yet - user must verify email first
     res.status(201).json({
-      message: "Registration successful! Please check your email to verify your account.",
+      message: "Registration successful! Please enter the 6-digit code sent to your email.",
       emailSent: emailResult.success,
       user: {
         id: newUser._id,
@@ -250,90 +247,93 @@ export const updateUserProfile = async (req, res) => {
 
 // ✅ EMAIL VERIFICATION ENDPOINTS
 
-// Verify Email
-export const verifyEmail = async (req, res) => {
+// Verify OTP
+export const verifyOTP = async (req, res) => {
   try {
-    const { token } = req.params;
-    
-    // Always use FRONTEND_URL env variable (set per environment)
-    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
-    
-    if (!token) {
-      // Redirect to frontend with error
-      return res.redirect(`${frontendURL}/?verification=error&message=missing-token`);
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Email and OTP are required' });
     }
 
-    const user = await User.findOne({
-      emailVerificationToken: token,
-      emailVerificationExpires: { $gt: new Date() } // Token not expired
-    });
-
-    if (!user) {
-      // Redirect to frontend with error
-      return res.redirect(`${frontendURL}/?verification=error&message=invalid-token`);
-    }
-
-    // ✅ Mark email as verified
-    user.emailVerified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
-    await user.save();
-
-    // ✅ Generate JWT token now that email is verified
-    const jwtToken = generateToken(user._id, user.role);
-
-    // Redirect to frontend with success and token
-    res.redirect(`${frontendURL}/?verification=success&token=${jwtToken}&user=${encodeURIComponent(JSON.stringify({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      emailVerified: true
-    }))}`);
-  } catch (error) {
-    console.error("Email verification error:", error);
-    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendURL}/?verification=error&message=server-error`);
-  }
-};
-
-// Resend Verification Email
-export const resendVerification = async (req, res) => {
-  try {
-    const { email } = req.body;
-    
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "Account not found" });
+      return res.status(404).json({ message: 'Account not found' });
     }
 
     if (user.emailVerified) {
-      return res.status(400).json({ message: "Email is already verified" });
+      return res.status(400).json({ message: 'Email is already verified' });
     }
 
-    // Generate new verification token
-    const verificationToken = generateVerificationToken();
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    if (!user.emailOTP || !user.emailOTPExpires) {
+      return res.status(400).json({ message: 'No OTP found. Please request a new one.' });
+    }
 
-    user.emailVerificationToken = verificationToken;
-    user.emailVerificationExpires = verificationExpires;
+    if (new Date() > user.emailOTPExpires) {
+      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+    }
+
+    if (user.emailOTP !== otp.trim()) {
+      return res.status(400).json({ message: 'Invalid OTP. Please check and try again.' });
+    }
+
+    // ✅ Mark verified and clear OTP
+    user.emailVerified = true;
+    user.emailOTP = undefined;
+    user.emailOTPExpires = undefined;
     await user.save();
 
-    // Send verification email
-    const emailResult = await sendVerificationEmail(user, verificationToken);
-    
+    // ✅ Generate JWT and return user
+    const token = generateToken(user._id, user.role);
+
+    res.status(200).json({
+      message: 'Email verified successfully! Welcome to Adaayein.',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        emailVerified: true,
+      },
+    });
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    res.status(500).json({ message: 'Verification failed. Please try again.' });
+  }
+};
+
+// Resend OTP
+export const resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'Account not found' });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({ message: 'Email is already verified' });
+    }
+
+    // Generate fresh OTP
+    const otp = generateOTP();
+    user.emailOTP = otp;
+    user.emailOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    const emailResult = await sendOTPEmail(user, otp);
     if (!emailResult.success) {
-      return res.status(500).json({ 
-        message: "Failed to send verification email. Please try again."
-      });
+      return res.status(500).json({ message: 'Failed to send OTP. Please try again.' });
     }
 
     res.status(200).json({
-      message: "Verification email sent successfully. Please check your inbox.",
+      message: 'A new verification code has been sent to your email.',
       emailSent: true,
     });
   } catch (error) {
-    console.error("Resend verification error:", error);
-    res.status(500).json({ message: "Failed to resend verification email" });
+    console.error('Resend OTP error:', error);
+    res.status(500).json({ message: 'Failed to resend OTP' });
   }
 };

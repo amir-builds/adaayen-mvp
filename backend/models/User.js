@@ -33,8 +33,9 @@ const userSchema = new mongoose.Schema(
       type: Boolean, 
       default: false 
     },
-    emailVerificationToken: String,
-    emailVerificationExpires: Date,
+    emailOTP: String,
+    emailOTPExpires: Date,
+
 
     // ===== ACCOUNT SECURITY =====
     isActive: {
