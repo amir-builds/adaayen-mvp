@@ -101,9 +101,12 @@ export default function Checkout() {
               state: { orderNumber: verifyRes.data.orderNumber },
             });
           } catch (err) {
+            setPaying(false);
+            const data = err.response?.data;
             setError(
-              err.response?.data?.message ||
-              'Payment received but order confirmation failed. Please contact support.'
+              data?.debug_error
+                ? `${data.message} (Debug: ${data.debug_error})`
+                : data?.message || 'Payment received but order confirmation failed. Please contact support.'
             );
           }
         },
