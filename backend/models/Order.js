@@ -118,9 +118,11 @@ const orderSchema = new mongoose.Schema(
     paymentDetails: {
       method: {
         type: String,
-        enum: ['credit_card', 'debit_card', 'upi', 'wallet', 'cod', 'bank_transfer'],
-        required: true
+        enum: ['credit_card', 'debit_card', 'upi', 'wallet', 'cod', 'bank_transfer', 'razorpay'],
       },
+      razorpayOrderId: String,       // Razorpay order_id
+      razorpayPaymentId: String,     // Razorpay payment_id (after success)
+      razorpaySignature: String,     // HMAC signature (verified server-side)
       transactionId: String,
       paymentStatus: {
         type: String,
