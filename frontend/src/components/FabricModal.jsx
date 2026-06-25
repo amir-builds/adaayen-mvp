@@ -308,25 +308,26 @@ export default function FabricModal({
       {/* ── Full-Screen Image Lightbox ── */}
       {lightboxOpen && images.length > 0 && (
         <div
-          className="fixed inset-0 z-[100] flex flex-col"
-          style={{ background: 'rgba(0,0,0,0.95)' }}
+          className="fixed inset-0 flex flex-col"
+          style={{ background: 'rgba(0,0,0,0.95)', zIndex: 9999 }}
           role="dialog"
           aria-modal="true"
           aria-label="Image viewer"
         >
           {/* Top bar */}
           <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
-            <span className="text-white/80 text-sm font-medium tracking-wide">
+            <span className="text-sm font-medium tracking-wide" style={{ color: 'rgba(255,255,255,0.8)' }}>
               {fabric.name}
             </span>
             <div className="flex items-center gap-4">
-              <span className="text-white/60 text-sm">
+              <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 {lightboxIndex + 1} / {images.length}
               </span>
               <button
                 onClick={closeLightbox}
                 aria-label="Close image viewer"
-                className="text-white/70 hover:text-white transition p-2 rounded-full hover:bg-white/10"
+                className="transition p-2 rounded-full"
+                style={{ color: 'rgba(255,255,255,0.8)' }}
               >
                 <X size={28} />
               </button>
@@ -336,6 +337,7 @@ export default function FabricModal({
           {/* Main image area */}
           <div
             className="flex-1 flex items-center justify-center relative overflow-hidden px-16"
+            style={{ cursor: 'zoom-out' }}
             onClick={closeLightbox}
           >
             {/* Prev arrow */}
@@ -343,7 +345,8 @@ export default function FabricModal({
               <button
                 onClick={(e) => { e.stopPropagation(); lightboxPrev(); }}
                 aria-label="Previous image"
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 hover:bg-white/25 text-white p-3 rounded-full transition-all duration-200 shadow-xl backdrop-blur-sm"
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full transition-all duration-200 shadow-xl"
+                style={{ zIndex: 10, background: 'rgba(255,255,255,0.15)', color: '#fff' }}
               >
                 <ChevronLeft size={32} />
               </button>
@@ -352,8 +355,8 @@ export default function FabricModal({
             <img
               src={images[lightboxIndex]}
               alt={`${fabric.name} - full view ${lightboxIndex + 1}`}
-              className="max-h-full max-w-full object-contain select-none drop-shadow-2xl"
-              style={{ maxHeight: 'calc(100vh - 200px)' }}
+              className="max-h-full max-w-full object-contain select-none"
+              style={{ maxHeight: 'calc(100vh - 200px)', cursor: 'default' }}
               onClick={(e) => e.stopPropagation()}
               draggable={false}
             />
@@ -363,7 +366,8 @@ export default function FabricModal({
               <button
                 onClick={(e) => { e.stopPropagation(); lightboxNext(); }}
                 aria-label="Next image"
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 hover:bg-white/25 text-white p-3 rounded-full transition-all duration-200 shadow-xl backdrop-blur-sm"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full transition-all duration-200 shadow-xl"
+                style={{ zIndex: 10, background: 'rgba(255,255,255,0.15)', color: '#fff' }}
               >
                 <ChevronRight size={32} />
               </button>
@@ -378,11 +382,12 @@ export default function FabricModal({
                   key={idx}
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
                   aria-label={`View image ${idx + 1}`}
-                  className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                    lightboxIndex === idx
-                      ? 'border-white scale-110 shadow-lg shadow-white/20'
-                      : 'border-white/20 opacity-60 hover:opacity-90 hover:border-white/50'
-                  }`}
+                  className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden transition-all duration-200"
+                  style={{
+                    border: lightboxIndex === idx ? '2px solid #fff' : '2px solid rgba(255,255,255,0.2)',
+                    opacity: lightboxIndex === idx ? 1 : 0.6,
+                    transform: lightboxIndex === idx ? 'scale(1.1)' : 'scale(1)',
+                  }}
                 >
                   <img src={img} alt={`thumb-${idx}`} className="w-full h-full object-cover" loading="lazy" />
                 </button>
@@ -391,7 +396,7 @@ export default function FabricModal({
           )}
 
           {/* Keyboard hint */}
-          <p className="text-center text-white/30 text-xs pb-3 flex-shrink-0">
+          <p className="text-center text-xs pb-3 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Press ← → to navigate &nbsp;·&nbsp; Esc to close
           </p>
         </div>
