@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { X, ChevronLeft, ChevronRight, ShoppingCart, Minus, Plus } from 'lucide-react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { X, ChevronLeft, ChevronRight, ShoppingCart, Minus, Plus, ZoomIn } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,8 @@ export default function FabricModal({
   // Quantity state (must be before early return)
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   // Price parsing and formatting helpers
   const parsePrice = (val) => {
@@ -54,16 +56,41 @@ export default function FabricModal({
   const totalPrice = useMemo(() => pricePerMeter * quantity, [pricePerMeter, quantity]);
 
   // Effects (must be before early return)
+  const lightboxNext = useCallback(() => {
+    if (!fabric) return;
+    const imgs = Array.isArray(fabric.images) && fabric.images.length > 0 ? fabric.images : (fabric.imageUrl ? [fabric.imageUrl] : []);
+    setLightboxIndex(prev => (prev + 1) % imgs.length);
+  }, [fabric]);
+
+  const lightboxPrev = useCallback(() => {
+    if (!fabric) return;
+    const imgs = Array.isArray(fabric.images) && fabric.images.length > 0 ? fabric.images : (fabric.imageUrl ? [fabric.imageUrl] : []);
+    setLightboxIndex(prev => (prev - 1 + imgs.length) % imgs.length);
+  }, [fabric]);
+
+  const openLightbox = (idx) => {
+    setLightboxIndex(idx);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => setLightboxOpen(false);
+
   useEffect(() => {
     const handleKey = (e) => {
       if (!fabric) return;
-      if (e.key === 'ArrowRight') onNextImage();
-      if (e.key === 'ArrowLeft') onPrevImage();
-      if (e.key === 'Escape') onClose();
+      if (lightboxOpen) {
+        if (e.key === 'ArrowRight') lightboxNext();
+        else if (e.key === 'ArrowLeft') lightboxPrev();
+        else if (e.key === 'Escape') closeLightbox();
+      } else {
+        if (e.key === 'ArrowRight') onNextImage();
+        else if (e.key === 'ArrowLeft') onPrevImage();
+        else if (e.key === 'Escape') onClose();
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [fabric, onNextImage, onPrevImage, onClose]);
+  }, [fabric, onNextImage, onPrevImage, onClose, lightboxOpen, lightboxNext, lightboxPrev]);
 
   // Early return AFTER all hooks
   if (!fabric) return null;
@@ -128,6 +155,7 @@ export default function FabricModal({
   };
 
   return (
+    <>
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" ref={containerRef}>
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
@@ -138,23 +166,46 @@ export default function FabricModal({
         <div className="md:flex">
           <div className="md:w-3/5 p-6">
             <div className="relative">
-              <div className="h-96 rounded-xl bg-gray-100 relative overflow-hidden flex items-center justify-center">
+              {/* Main image — click to open lightbox */}
+              <div
+                className="h-96 rounded-xl bg-gray-100 relative overflow-hidden flex items-center justify-center cursor-zoom-in group"
+                onClick={() => images.length > 0 && openLightbox(currentImageIndex)}
+                title="Click to view full image"
+              >
                 {images.length > 0 ? (
-                  <img src={images[currentImageIndex]} alt={`${fabric.name} - ${currentImageIndex + 1}`} className="max-h-full max-w-full object-contain" loading="lazy" />
+                  <>
+                    <img
+                      src={images[currentImageIndex]}
+                      alt={`${fabric.name} - ${currentImageIndex + 1}`}
+                      className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    {/* Zoom hint overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/60 text-white rounded-full p-3 shadow-lg">
+                        <ZoomIn size={24} />
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="text-gray-400">No image available</div>
                 )}
               </div>
 
-              <button onClick={onPrevImage} aria-label="Previous image" className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition shadow-lg"><ChevronLeft size={24} /></button>
-              <button onClick={onNextImage} aria-label="Next image" className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition shadow-lg"><ChevronRight size={24} /></button>
+              <button onClick={(e) => { e.stopPropagation(); onPrevImage(); }} aria-label="Previous image" className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition shadow-lg"><ChevronLeft size={24} /></button>
+              <button onClick={(e) => { e.stopPropagation(); onNextImage(); }} aria-label="Next image" className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition shadow-lg"><ChevronRight size={24} /></button>
 
               <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm">{currentImageIndex + 1} / {images.length}</div>
             </div>
 
             <div className="grid grid-cols-4 gap-2 mt-4">
               {images.map((img, idx) => (
-                <button key={idx} onClick={() => onImageSelect(idx)} aria-label={`Select image ${idx + 1}`} className={`h-20 rounded-lg overflow-hidden ${currentImageIndex === idx ? 'ring-4 ring-purple-600' : 'opacity-80 hover:opacity-100'}`}>
+                <button
+                  key={idx}
+                  onClick={() => onImageSelect(idx)}
+                  aria-label={`Select image ${idx + 1}`}
+                  className={`h-20 rounded-lg overflow-hidden transition-all duration-200 ${currentImageIndex === idx ? 'ring-4 ring-purple-600' : 'opacity-80 hover:opacity-100'}`}
+                >
                   <img src={img} alt={`thumb-${idx}`} className="w-full h-full object-cover" loading="lazy" />
                 </button>
               ))}
@@ -253,5 +304,98 @@ export default function FabricModal({
         </div>
       </div>
     </div>
+
+      {/* ── Full-Screen Image Lightbox ── */}
+      {lightboxOpen && images.length > 0 && (
+        <div
+          className="fixed inset-0 z-[100] flex flex-col"
+          style={{ background: 'rgba(0,0,0,0.95)' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image viewer"
+        >
+          {/* Top bar */}
+          <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
+            <span className="text-white/80 text-sm font-medium tracking-wide">
+              {fabric.name}
+            </span>
+            <div className="flex items-center gap-4">
+              <span className="text-white/60 text-sm">
+                {lightboxIndex + 1} / {images.length}
+              </span>
+              <button
+                onClick={closeLightbox}
+                aria-label="Close image viewer"
+                className="text-white/70 hover:text-white transition p-2 rounded-full hover:bg-white/10"
+              >
+                <X size={28} />
+              </button>
+            </div>
+          </div>
+
+          {/* Main image area */}
+          <div
+            className="flex-1 flex items-center justify-center relative overflow-hidden px-16"
+            onClick={closeLightbox}
+          >
+            {/* Prev arrow */}
+            {images.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); lightboxPrev(); }}
+                aria-label="Previous image"
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 hover:bg-white/25 text-white p-3 rounded-full transition-all duration-200 shadow-xl backdrop-blur-sm"
+              >
+                <ChevronLeft size={32} />
+              </button>
+            )}
+
+            <img
+              src={images[lightboxIndex]}
+              alt={`${fabric.name} - full view ${lightboxIndex + 1}`}
+              className="max-h-full max-w-full object-contain select-none drop-shadow-2xl"
+              style={{ maxHeight: 'calc(100vh - 200px)' }}
+              onClick={(e) => e.stopPropagation()}
+              draggable={false}
+            />
+
+            {/* Next arrow */}
+            {images.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); lightboxNext(); }}
+                aria-label="Next image"
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 hover:bg-white/25 text-white p-3 rounded-full transition-all duration-200 shadow-xl backdrop-blur-sm"
+              >
+                <ChevronRight size={32} />
+              </button>
+            )}
+          </div>
+
+          {/* Thumbnail strip */}
+          {images.length > 1 && (
+            <div className="flex-shrink-0 flex items-center justify-center gap-3 py-4 px-6 overflow-x-auto">
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
+                  aria-label={`View image ${idx + 1}`}
+                  className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                    lightboxIndex === idx
+                      ? 'border-white scale-110 shadow-lg shadow-white/20'
+                      : 'border-white/20 opacity-60 hover:opacity-90 hover:border-white/50'
+                  }`}
+                >
+                  <img src={img} alt={`thumb-${idx}`} className="w-full h-full object-cover" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Keyboard hint */}
+          <p className="text-center text-white/30 text-xs pb-3 flex-shrink-0">
+            Press ← → to navigate &nbsp;·&nbsp; Esc to close
+          </p>
+        </div>
+      )}
+    </>
   );
 }
