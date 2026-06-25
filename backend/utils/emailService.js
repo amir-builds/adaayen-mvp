@@ -8,7 +8,7 @@ export const generateOTP = () =>
 
 // ─── Senders ─────────────────────────────────────────────────────────────────
 
-// Brevo HTTP API — works on Render (no SMTP needed), tracking irrelevant since OTP has no links
+// Brevo HTTP API — works on Render (no SMTP needed)
 const sendViaBrevo = async (to, subject, html, text) => {
   const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -55,7 +55,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
     console.log('📧 Using Brevo HTTP API');
     return sendViaBrevo(to, subject, html, text);
   }
-  console.log('📧 Using Gmail SMTP (local dev) — install BREVO_API_KEY on Render for production');
+  console.log('📧 Using Gmail SMTP (local dev)');
   return sendViaGmail({ to, subject, html, text });
 };
 
@@ -77,22 +77,9 @@ export const sendOTPEmail = async (user, otp) => {
           .header h1 { margin: 0; font-size: 24px; }
           .header p { margin: 6px 0 0; opacity: 0.85; font-size: 14px; }
           .body { padding: 32px 24px; }
-          .otp-box { 
-            background: #f5f3ff; 
-            border: 2px dashed #8b5cf6; 
-            border-radius: 12px; 
-            text-align: center; 
-            padding: 24px;
-            margin: 24px 0;
-          }
+          .otp-box { background: #f5f3ff; border: 2px dashed #8b5cf6; border-radius: 12px; text-align: center; padding: 24px; margin: 24px 0; }
           .otp-label { font-size: 13px; color: #6b7280; margin-bottom: 8px; }
-          .otp-code { 
-            font-size: 42px; 
-            font-weight: 900; 
-            letter-spacing: 12px; 
-            color: #6366f1;
-            font-family: 'Courier New', monospace;
-          }
+          .otp-code { font-size: 42px; font-weight: 900; letter-spacing: 12px; color: #6366f1; font-family: 'Courier New', monospace; }
           .expiry { font-size: 13px; color: #ef4444; margin-top: 10px; font-weight: 600; }
           .footer { text-align: center; padding: 20px; color: #9ca3af; font-size: 12px; border-top: 1px solid #f3f4f6; }
         </style>
@@ -187,7 +174,12 @@ export const sendPasswordResetEmail = async (user, otp) => {
 // ─── New Order Notification (sent to admin) ───────────────────────────────────
 export const sendNewOrderNotification = async ({ order, customer, shippingAddress }) => {
   const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
-  if (!adminEmail) return;
+  console.log(`📬 Order notification: attempting to send to ${adminEmail}`);
+
+  if (!adminEmail) {
+    console.warn('⚠️  No ADMIN_EMAIL or EMAIL_USER set — skipping order notification');
+    return;
+  }
 
   try {
     const itemsHtml = order.items.map(item =>
@@ -209,7 +201,6 @@ export const sendNewOrderNotification = async ({ order, customer, shippingAddres
         <div style="padding:24px;">
           <p style="margin:0 0 16px;"><strong>Order Number:</strong> <span style="font-family:monospace;color:#7c3aed;">${order.orderNumber}</span></p>
           <p style="margin:0 0 16px;"><strong>Customer:</strong> ${customer.name} (${customer.email})</p>
-
           <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
             <thead><tr style="background:#f3f4f6;">
               <th style="padding:8px;text-align:left;font-size:13px;">Item</th>
@@ -218,9 +209,7 @@ export const sendNewOrderNotification = async ({ order, customer, shippingAddres
             </tr></thead>
             <tbody>${itemsHtml}</tbody>
           </table>
-
           <p style="text-align:right;font-size:18px;font-weight:bold;color:#7c3aed;">Total: ₹${order.total.toFixed(2)}</p>
-
           <div style="background:#f9fafb;border-radius:8px;padding:12px;margin-top:16px;">
             <p style="margin:0 0 4px;font-weight:bold;">📦 Ship To:</p>
             <p style="margin:0;font-size:14px;color:#4b5563;">
@@ -229,7 +218,6 @@ export const sendNewOrderNotification = async ({ order, customer, shippingAddres
               ${shippingAddress.city}, ${shippingAddress.state} — ${shippingAddress.postalCode}
             </p>
           </div>
-
           <p style="margin:16px 0 0;font-size:13px;color:#6b7280;">
             Payment ID: <code>${order.paymentDetails?.razorpayPaymentId}</code>
           </p>
@@ -238,9 +226,14 @@ export const sendNewOrderNotification = async ({ order, customer, shippingAddres
       </body></html>
     `;
 
-    await sendEmail({ to: adminEmail, subject, html, text: `New order ${order.orderNumber} — ₹${order.total.toFixed(2)} from ${customer.name} (${customer.email})` });
+    await sendEmail({
+      to: adminEmail,
+      subject,
+      html,
+      text: `New order ${order.orderNumber} — ₹${order.total.toFixed(2)} from ${customer.name} (${customer.email})`,
+    });
+    console.log(`✅ Order notification sent successfully to ${adminEmail}`);
   } catch (err) {
-    // Don't let notification failure block the order success
-    console.error('Order notification email failed:', err.message);
+    console.error('❌ Order notification email failed:', err.message, err.stack);
   }
 };
