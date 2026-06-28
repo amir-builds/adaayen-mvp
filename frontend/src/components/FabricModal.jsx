@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, ShoppingCart, Minus, Plus, ZoomIn } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ShoppingCart, Minus, Plus, ZoomIn, Expand } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +23,9 @@ export default function FabricModal({
   const [addingToCart, setAddingToCart] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [imageHovered, setImageHovered] = useState(false);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
 
   // Price parsing and formatting helpers
   const parsePrice = (val) => {
@@ -168,8 +171,11 @@ export default function FabricModal({
             <div className="relative">
               {/* Main image — click to open lightbox */}
               <div
-                className="h-96 rounded-xl bg-gray-100 relative overflow-hidden flex items-center justify-center cursor-zoom-in group"
+                className="h-96 rounded-xl bg-gray-100 relative overflow-hidden flex items-center justify-center"
+                style={{ cursor: 'zoom-in' }}
                 onClick={() => images.length > 0 && openLightbox(currentImageIndex)}
+                onMouseEnter={() => setImageHovered(true)}
+                onMouseLeave={() => setImageHovered(false)}
                 title="Click to view full image"
               >
                 {images.length > 0 ? (
@@ -177,13 +183,42 @@ export default function FabricModal({
                     <img
                       src={images[currentImageIndex]}
                       alt={`${fabric.name} - ${currentImageIndex + 1}`}
-                      className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                      style={{
+                        maxHeight: '100%',
+                        maxWidth: '100%',
+                        objectFit: 'contain',
+                        transition: 'transform 0.3s ease',
+                        transform: imageHovered ? 'scale(1.04)' : 'scale(1)',
+                      }}
                       loading="lazy"
                     />
                     {/* Zoom hint overlay */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/60 text-white rounded-full p-3 shadow-lg">
-                        <ZoomIn size={24} />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: imageHovered ? 'rgba(0,0,0,0.08)' : 'transparent',
+                        transition: 'background 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <div
+                        style={{
+                          background: 'rgba(0,0,0,0.55)',
+                          color: '#fff',
+                          borderRadius: '50%',
+                          padding: '10px',
+                          opacity: imageHovered ? 1 : 0,
+                          transition: 'opacity 0.2s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <ZoomIn size={22} />
                       </div>
                     </div>
                   </>
@@ -305,100 +340,250 @@ export default function FabricModal({
       </div>
     </div>
 
-      {/* ── Full-Screen Image Lightbox ── */}
+      {/* ══ Full-Screen Lightbox (Myntra / Amazon style) ══ */}
       {lightboxOpen && images.length > 0 && (
         <div
-          className="fixed inset-0 flex flex-col"
-          style={{ background: 'rgba(0,0,0,0.95)', zIndex: 9999 }}
           role="dialog"
           aria-modal="true"
-          aria-label="Image viewer"
+          aria-label="Full screen image viewer"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: '#000',
+            display: 'flex',
+            flexDirection: 'column',
+            userSelect: 'none',
+          }}
+          /* Touch swipe support for mobile */
+          onTouchStart={(e) => {
+            touchStartX.current = e.touches[0].clientX;
+            touchStartY.current = e.touches[0].clientY;
+          }}
+          onTouchEnd={(e) => {
+            if (touchStartX.current === null) return;
+            const dx = e.changedTouches[0].clientX - touchStartX.current;
+            const dy = e.changedTouches[0].clientY - touchStartY.current;
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+              dx < 0 ? lightboxNext() : lightboxPrev();
+            }
+            touchStartX.current = null;
+            touchStartY.current = null;
+          }}
         >
-          {/* Top bar */}
-          <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
-            <span className="text-sm font-medium tracking-wide" style={{ color: 'rgba(255,255,255,0.8)' }}>
-              {fabric.name}
-            </span>
-            <div className="flex items-center gap-4">
-              <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                {lightboxIndex + 1} / {images.length}
+          {/* ── Top bar ── */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              flexShrink: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 10,
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ color: '#fff', fontWeight: 600, fontSize: '15px', lineHeight: 1.2 }}>
+                {fabric.name}
               </span>
-              <button
-                onClick={closeLightbox}
-                aria-label="Close image viewer"
-                className="transition p-2 rounded-full"
-                style={{ color: 'rgba(255,255,255,0.8)' }}
-              >
-                <X size={28} />
-              </button>
+              <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', marginTop: '2px' }}>
+                {lightboxIndex + 1} of {images.length}
+              </span>
             </div>
+            <button
+              onClick={closeLightbox}
+              aria-label="Close"
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#fff',
+                flexShrink: 0,
+              }}
+            >
+              <X size={22} />
+            </button>
           </div>
 
-          {/* Main image area */}
+          {/* ── Main image — fills entire screen ── */}
           <div
-            className="flex-1 flex items-center justify-center relative overflow-hidden px-16"
-            style={{ cursor: 'zoom-out' }}
-            onClick={closeLightbox}
+            style={{
+              flex: 1,
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
           >
-            {/* Prev arrow */}
-            {images.length > 1 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); lightboxPrev(); }}
-                aria-label="Previous image"
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full transition-all duration-200 shadow-xl"
-                style={{ zIndex: 10, background: 'rgba(255,255,255,0.15)', color: '#fff' }}
-              >
-                <ChevronLeft size={32} />
-              </button>
-            )}
-
             <img
+              key={lightboxIndex}
               src={images[lightboxIndex]}
-              alt={`${fabric.name} - full view ${lightboxIndex + 1}`}
-              className="max-h-full max-w-full object-contain select-none"
-              style={{ maxHeight: 'calc(100vh - 200px)', cursor: 'default' }}
-              onClick={(e) => e.stopPropagation()}
+              alt={`${fabric.name} image ${lightboxIndex + 1}`}
               draggable={false}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                display: 'block',
+                /* slight fade-in on image change */
+                animation: 'lbFadeIn 0.2s ease',
+              }}
             />
 
-            {/* Next arrow */}
+            {/* Prev arrow — hidden on very small screens, shown md+ */}
             {images.length > 1 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); lightboxNext(); }}
-                aria-label="Next image"
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full transition-all duration-200 shadow-xl"
-                style={{ zIndex: 10, background: 'rgba(255,255,255,0.15)', color: '#fff' }}
-              >
-                <ChevronRight size={32} />
-              </button>
+              <>
+                <button
+                  onClick={lightboxPrev}
+                  aria-label="Previous image"
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 10,
+                    background: 'rgba(255,255,255,0.18)',
+                    border: '1px solid rgba(255,255,255,0.25)',
+                    borderRadius: '50%',
+                    width: '48px',
+                    height: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#fff',
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                  }}
+                >
+                  <ChevronLeft size={28} />
+                </button>
+                <button
+                  onClick={lightboxNext}
+                  aria-label="Next image"
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 10,
+                    background: 'rgba(255,255,255,0.18)',
+                    border: '1px solid rgba(255,255,255,0.25)',
+                    borderRadius: '50%',
+                    width: '48px',
+                    height: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#fff',
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                  }}
+                >
+                  <ChevronRight size={28} />
+                </button>
+              </>
             )}
           </div>
 
-          {/* Thumbnail strip */}
-          {images.length > 1 && (
-            <div className="flex-shrink-0 flex items-center justify-center gap-3 py-4 px-6 overflow-x-auto">
-              {images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
-                  aria-label={`View image ${idx + 1}`}
-                  className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden transition-all duration-200"
-                  style={{
-                    border: lightboxIndex === idx ? '2px solid #fff' : '2px solid rgba(255,255,255,0.2)',
-                    opacity: lightboxIndex === idx ? 1 : 0.6,
-                    transform: lightboxIndex === idx ? 'scale(1.1)' : 'scale(1)',
-                  }}
-                >
-                  <img src={img} alt={`thumb-${idx}`} className="w-full h-full object-cover" loading="lazy" />
-                </button>
-              ))}
-            </div>
-          )}
+          {/* ── Bottom: thumbnails (desktop) + dot indicators (mobile) ── */}
+          <div
+            style={{
+              flexShrink: 0,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)',
+              padding: '12px 16px 20px',
+            }}
+          >
+            {/* Dot indicators — always visible */}
+            {images.length > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
+                {images.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setLightboxIndex(idx)}
+                    aria-label={`Go to image ${idx + 1}`}
+                    style={{
+                      width: lightboxIndex === idx ? '24px' : '8px',
+                      height: '8px',
+                      borderRadius: '9999px',
+                      background: lightboxIndex === idx ? '#fff' : 'rgba(255,255,255,0.35)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      transition: 'all 0.25s ease',
+                      flexShrink: 0,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
 
-          {/* Keyboard hint */}
-          <p className="text-center text-xs pb-3 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            Press ← → to navigate &nbsp;·&nbsp; Esc to close
-          </p>
+            {/* Thumbnail strip — visible on md+ screens */}
+            {images.length > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  overflowX: 'auto',
+                  paddingBottom: '4px',
+                }}
+                className="hidden-on-mobile"
+              >
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setLightboxIndex(idx)}
+                    aria-label={`View image ${idx + 1}`}
+                    style={{
+                      flexShrink: 0,
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      border: lightboxIndex === idx ? '2.5px solid #fff' : '2px solid rgba(255,255,255,0.2)',
+                      opacity: lightboxIndex === idx ? 1 : 0.55,
+                      transform: lightboxIndex === idx ? 'scale(1.08)' : 'scale(1)',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                      padding: 0,
+                      background: 'none',
+                    }}
+                  >
+                    <img
+                      src={img}
+                      alt={`thumb ${idx + 1}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: '11px', marginTop: '8px' }}>
+              Swipe or use ← → keys &nbsp;·&nbsp; Tap outside to close
+            </p>
+          </div>
+
+          {/* Keyframe for fade-in animation — injected once */}
+          <style>{`
+            @keyframes lbFadeIn { from { opacity: 0.4; } to { opacity: 1; } }
+            @media (max-width: 640px) { .hidden-on-mobile { display: none !important; } }
+          `}</style>
         </div>
       )}
     </>
