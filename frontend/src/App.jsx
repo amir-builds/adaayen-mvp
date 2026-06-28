@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
+import MyOrders from './pages/MyOrders';
 
 import Profile from './pages/Profile';
 import Creators from './pages/Creators';
@@ -30,6 +31,7 @@ const App = () => (
       <Route path="/order-success/:id" element={<OrderSuccess />} />
 
       <Route path="/profile" element={<Profile />} />
+      <Route path="/my-orders" element={<MyOrders />} />
       <Route path="/creators" element={<Creators />} />
       <Route path="/creators/:id" element={<CreatorProfile />} />
       <Route path="/creator/dashboard" element={<CreatorDashboard />} />

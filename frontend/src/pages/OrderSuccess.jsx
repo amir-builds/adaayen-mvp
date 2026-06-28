@@ -118,7 +118,7 @@ export default function OrderSuccess() {
             Continue Shopping
           </Link>
           <Link
-            to="/profile"
+            to="/my-orders"
             className="flex-1 border-2 border-purple-600 text-purple-600 py-3 rounded-full font-semibold text-center hover:bg-purple-50 transition"
           >
             My Orders
