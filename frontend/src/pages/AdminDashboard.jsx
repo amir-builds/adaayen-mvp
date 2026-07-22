@@ -17,6 +17,8 @@ function FabricForm({ initial = {}, onCancel, onSaved }) {
   const [care, setCare] = useState(initial.specs?.care || '');
   const [composition, setComposition] = useState(initial.specs?.composition || '');
   const [files, setFiles] = useState([]);
+  // Existing images already saved to the DB (edit mode)
+  const [existingImages, setExistingImages] = useState(initial.images || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -41,6 +43,8 @@ function FabricForm({ initial = {}, onCancel, onSaved }) {
 
       let res;
       if (initial._id) {
+        // Tell the backend which existing images to keep (the rest will be deleted)
+        fd.append('keepImages', JSON.stringify(existingImages));
         res = await api.put(`/fabrics/${initial._id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       } else {
         res = await api.post('/fabrics', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -119,11 +123,16 @@ function FabricForm({ initial = {}, onCancel, onSaved }) {
         <label className="flex items-center gap-2"><input type="checkbox" checked={inStock} onChange={(e) => setInStock(e.target.checked)} /> In Stock</label>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">Images (you can add multiple)</label>
+        <label className="block text-sm font-medium mb-2">Images</label>
+        {initial._id && existingImages.length === 0 && files.length === 0 && (
+          <p className="text-xs text-amber-600 mb-2">⚠️ No images currently saved for this fabric.</p>
+        )}
         <ImageUpload
           images={files}
           onChange={setFiles}
           maxFiles={6}
+          existingImages={existingImages}
+          onExistingChange={setExistingImages}
         />
       </div>
       <div className="flex gap-2">

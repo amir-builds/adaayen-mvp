@@ -12,7 +12,7 @@ const resetAdmin = async () => {
 
     const oldEmail = 'admin@adaayen.com';
     const newEmail = 'devamir121@gmail.com';
-    const newPassword = '$AmirBM121';
+    const newPassword = 'amir_builds';
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 

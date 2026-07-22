@@ -132,13 +132,43 @@ export const getFabricById = async (req, res) => {
 export const updateFabric = async (req, res) => {
   try {
     const fabric = await Fabric.findById(req.params.id);
-    
+
     if (!fabric) {
       return res.status(404).json({ message: "Fabric not found" });
     }
 
-    // If a new image was uploaded, update imageUrl accordingly
-    // If new images were uploaded, append them to the images array and update primary image if needed
+    // --- Handle keepImages: admin explicitly says which existing images to keep ---
+    if (req.body.keepImages !== undefined) {
+      let keepUrls;
+      try {
+        keepUrls = JSON.parse(req.body.keepImages);
+      } catch {
+        keepUrls = [];
+      }
+      keepUrls = Array.isArray(keepUrls) ? keepUrls : [];
+
+      // Determine which existing images were removed
+      const existingMeta = Array.isArray(fabric.imagesMeta) ? fabric.imagesMeta : [];
+      const removedMeta = existingMeta.filter(
+        (m) => m.url && !keepUrls.includes(m.url)
+      );
+
+      // Delete removed images from Cloudinary
+      if (removedMeta.length > 0) {
+        console.log(`🗑️ Removing ${removedMeta.length} image(s) during fabric update`);
+        try {
+          await deleteImagesFromMeta(removedMeta);
+        } catch (err) {
+          console.error('⚠️ Error deleting some images from Cloudinary during update:', err);
+        }
+      }
+
+      // Set images arrays to only the kept ones
+      fabric.images = keepUrls;
+      fabric.imagesMeta = existingMeta.filter((m) => keepUrls.includes(m.url));
+    }
+
+    // --- Handle newly uploaded files ---
     const uploadedFiles = req.files || (req.file ? [req.file] : []);
     const newUrls = [];
     const newMeta = [];
@@ -150,34 +180,39 @@ export const updateFabric = async (req, res) => {
       newMeta.push({ url: url || null, public_id: public_id || null });
     });
 
-    // If no explicit URLs but imagesMeta contains urls, derive newUrls
+    // Fallback: derive urls from meta if needed
     if (newUrls.length === 0 && newMeta.length > 0) {
-      const fromMeta = newMeta.map(m => m.url).filter(Boolean);
+      const fromMeta = newMeta.map((m) => m.url).filter(Boolean);
       if (fromMeta.length > 0) newUrls.push(...fromMeta);
     }
 
     if (newUrls.length > 0) {
-      // append to existing images (legacy could be array of strings)
-      fabric.images = Array.isArray(fabric.images) ? fabric.images.concat(newUrls) : newUrls;
-      // append to imagesMeta (if schema previously lacked imagesMeta, this will create)
-      fabric.imagesMeta = Array.isArray(fabric.imagesMeta) ? fabric.imagesMeta.concat(newMeta) : newMeta;
-      // Ensure primary image exists
-      if (!fabric.imageUrl && fabric.images.length > 0) {
-        fabric.imageUrl = fabric.images[0];
-      }
+      fabric.images = Array.isArray(fabric.images)
+        ? fabric.images.concat(newUrls)
+        : newUrls;
+      fabric.imagesMeta = Array.isArray(fabric.imagesMeta)
+        ? fabric.imagesMeta.concat(newMeta)
+        : newMeta;
     }
 
-    // Update other fields from body
+    // Keep primary imageUrl in sync
+    if (fabric.images && fabric.images.length > 0) {
+      fabric.imageUrl = fabric.images[0];
+    } else {
+      fabric.imageUrl = null;
+    }
+
+    // Update other scalar fields
     const updatable = ['name', 'description', 'price', 'fabricType', 'color', 'inStock', 'specs'];
     updatable.forEach((field) => {
       if (req.body[field] !== undefined) fabric[field] = req.body[field];
     });
 
     const updatedFabric = await fabric.save();
-    
+
     res.json({
       message: "Fabric updated successfully",
-      fabric: updatedFabric
+      fabric: updatedFabric,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
