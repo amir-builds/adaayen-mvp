@@ -169,13 +169,15 @@ export const getCreatorStats = async (req, res) => {
       createdAt: { $gte: thirtyDaysAgo }
     });
     
-    // Calculate profile completion percentage
-    const creator = await Creator.findById(creatorId);
+    // Calculate profile completion percentage using User + CreatorProfile models
+    const user = await User.findById(creatorId);
+    const creatorProfile = await CreatorProfile.findOne({ user: creatorId });
+    
     let profileCompletion = 0;
-    if (creator.name) profileCompletion += 25;
-    if (creator.bio && creator.bio.length > 20) profileCompletion += 25;
-    if (creator.profilePic) profileCompletion += 25;
-    if (creator.email) profileCompletion += 25;
+    if (user?.name) profileCompletion += 25;
+    if (creatorProfile?.bio && creatorProfile.bio.length > 20) profileCompletion += 25;
+    if (user?.profilePic) profileCompletion += 25;
+    if (user?.email) profileCompletion += 25;
     
     res.json({
       totalPosts,
@@ -184,7 +186,7 @@ export const getCreatorStats = async (req, res) => {
       profileCompletion,
       totalViews: 0, // Placeholder for future analytics
       totalLikes: 0, // Placeholder for future analytics
-      memberSince: creator.createdAt
+      memberSince: user?.createdAt
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
