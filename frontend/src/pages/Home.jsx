@@ -21,7 +21,6 @@ export default function Home() {
   const [filter, setFilter] = useState('all');
   const [selectedFabric, setSelectedFabric] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [postImageIndices, setPostImageIndices] = useState({});
   const [displayedItems, setDisplayedItems] = useState(8);
   const [loading, setLoading] = useState(false);
@@ -170,12 +169,10 @@ export default function Home() {
   // Fabric modal handlers
   const openFabricModal = (fabric) => {
     setSelectedFabric(fabric);
-    setCurrentImageIndex(0);
   };
 
   const closeFabricModal = () => {
     setSelectedFabric(null);
-    setCurrentImageIndex(0);
   };
 
   const openPostModal = (post) => {
@@ -187,25 +184,8 @@ export default function Home() {
   };
 
   const viewFabricDesigns = (fabric) => {
-    // Navigate to dedicated fabric designs page
     const fabricId = fabric.id || fabric._id;
     navigate(`/fabric/${fabricId}/designs`);
-  };
-
-  const nextImage = () => {
-    if (selectedFabric) {
-      setCurrentImageIndex((prev) => 
-        prev === selectedFabric.images.length - 1 ? 0 : prev + 1
-      );
-    }
-  };
-
-  const prevImage = () => {
-    if (selectedFabric) {
-      setCurrentImageIndex((prev) => 
-        prev === 0 ? selectedFabric.images.length - 1 : prev - 1
-      );
-    }
   };
 
   // Post image navigation handlers
@@ -222,6 +202,7 @@ export default function Home() {
       [postId]: ((prev[postId] || 0) - 1 + imagesLength) % imagesLength
     }));
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -257,11 +238,7 @@ export default function Home() {
 
       <FabricModal
         fabric={selectedFabric}
-        currentImageIndex={currentImageIndex}
         onClose={closeFabricModal}
-        onNextImage={nextImage}
-        onPrevImage={prevImage}
-        onImageSelect={setCurrentImageIndex}
         onViewAll={viewFabricDesigns}
       />
       

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getAllFabrics } from '../utils/fabricAPI';
-import FabricModal from '../components/FabricModal';
 import { Sparkles, Filter } from 'lucide-react';
 
 // Fabric categories with descriptions and images
@@ -79,12 +79,13 @@ const fabricCategories = [
   },
 ];
 
+const SCROLL_KEY = 'shop_scroll_y';
+
 export default function ShopFabrics() {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [fabrics, setFabrics] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFabric, setSelectedFabric] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [pagination, setPagination] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -111,36 +112,30 @@ export default function ShopFabrics() {
     fetchFabrics();
   }, [currentPage]);
 
+  // ── Scroll position restoration ──────────────────────────────────────────
+  // Runs synchronously after the DOM is painted (before the browser can show
+  // the scroll jump), only once the loading spinner is gone and cards exist.
+  // useLayoutEffect prevents a visible flash at y=0.
+  useLayoutEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved) {
+      window.scrollTo({ top: parseInt(saved, 10), behavior: 'instant' });
+      sessionStorage.removeItem(SCROLL_KEY); // consume once per round-trip
+    }
+  }, [loading]);
+
   // Filter fabrics by category
   const filteredFabrics = selectedCategory === 'All' 
     ? fabrics 
     : fabrics.filter(f => f.fabricType === selectedCategory);
 
-  // Fabric modal handlers
-  const openFabricModal = (fabric) => {
-    setSelectedFabric(fabric);
-    setCurrentImageIndex(0);
-  };
-
-  const closeFabricModal = () => {
-    setSelectedFabric(null);
-    setCurrentImageIndex(0);
-  };
-
-  const nextImage = () => {
-    if (selectedFabric && selectedFabric.images) {
-      setCurrentImageIndex(prev => 
-        prev === selectedFabric.images.length - 1 ? 0 : prev + 1
-      );
-    }
-  };
-
-  const prevImage = () => {
-    if (selectedFabric && selectedFabric.images) {
-      setCurrentImageIndex(prev => 
-        prev === 0 ? selectedFabric.images.length - 1 : prev - 1
-      );
-    }
+  // ── Card click: save scroll position, then navigate with fabric data ─────
+  // Passing the fabric object as navigation state lets FabricDetail render
+  // instantly without a network request when coming from this page.
+  const handleCardClick = (fabric) => {
+    sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+    navigate(`/shop/${fabric._id}`, { state: { fabric } });
   };
 
   return (
@@ -236,7 +231,7 @@ export default function ShopFabrics() {
               {filteredFabrics.map((fabric) => (
                 <div
                   key={fabric._id}
-                  onClick={() => openFabricModal(fabric)}
+                  onClick={() => handleCardClick(fabric)}
                   className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer"
                 >
                   {/* Fabric Image */}
@@ -324,16 +319,6 @@ export default function ShopFabrics() {
           )}
         </div>
       </section>
-
-      {/* Fabric Modal */}
-      <FabricModal
-        fabric={selectedFabric}
-        currentImageIndex={currentImageIndex}
-        onClose={closeFabricModal}
-        onNextImage={nextImage}
-        onPrevImage={prevImage}
-        onImageSelect={setCurrentImageIndex}
-      />
     </div>
   );
 }

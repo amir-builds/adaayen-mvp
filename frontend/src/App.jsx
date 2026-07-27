@@ -16,6 +16,7 @@ import CreatorDashboard from './pages/CreatorDashboard';
 import Cart from './pages/Cart';
 import ShopFabrics from './pages/ShopFabrics';
 import FabricDesigns from './pages/FabricDesigns';
+import FabricDetail from './pages/FabricDetail';
 import AllDesigns from './pages/AllDesigns';
 import Navbar from './components/Navbar';
 
@@ -39,6 +40,7 @@ const App = () => (
       <Route path="/about" element={<About />} />
       <Route path="/cart" element={<Cart />} />
       <Route path="/shop" element={<ShopFabrics />} />
+      <Route path="/shop/:fabricId" element={<FabricDetail />} />
       <Route path="/designs" element={<AllDesigns />} />
       <Route path="/fabric/:fabricId/designs" element={<FabricDesigns />} />
     </Routes>
