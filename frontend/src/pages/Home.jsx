@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 // Navbar is provided at the app root (in App.jsx). Do not import here to avoid duplicate navbars.
 import HeroSection from '../components/HeroSection';
 import FabricCarousel from '../components/FabricCarousel';
@@ -12,11 +11,11 @@ import { fabricData as localFabricData } from '../data/fabricData';
 import { posts } from '../data/postsData';
 import { createInterleavedFeed, filterFeed } from '../utils/observer';
 import { getAllFabrics } from '../utils/fabricAPI';
+import { useFabricNavigation } from '../utils/useFabricNavigation';
 import api from '../utils/api';
 import { Star } from 'lucide-react';
 
 export default function Home() {
-  const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
   const [selectedPost, setSelectedPost] = useState(null);
   const [postImageIndices, setPostImageIndices] = useState({});
@@ -164,11 +163,12 @@ export default function Home() {
     setDisplayedItems(12);
   }, [filter]);
 
+  const { navigateToFabric } = useFabricNavigation();
+
   // Navigate to the product page, passing the fabric object as navigation state
   // so FabricDetail can render instantly without an extra network request.
   const handleFabricClick = (fabric) => {
-    const fabricId = fabric._id || fabric.id;
-    navigate(`/shop/${fabricId}`, { state: { fabric } });
+    navigateToFabric(fabric);
   };
 
 

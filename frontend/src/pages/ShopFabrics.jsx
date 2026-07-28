@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getAllFabrics } from '../utils/fabricAPI';
+import { useFabricNavigation } from '../utils/useFabricNavigation';
 import { Sparkles, Filter } from 'lucide-react';
 
 // Fabric categories with descriptions and images
@@ -82,7 +82,6 @@ const fabricCategories = [
 const SCROLL_KEY = 'shop_scroll_y';
 
 export default function ShopFabrics() {
-  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [fabrics, setFabrics] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -130,12 +129,14 @@ export default function ShopFabrics() {
     ? fabrics 
     : fabrics.filter(f => f.fabricType === selectedCategory);
 
-  // ── Card click: save scroll position, then navigate with fabric data ─────
-  // Passing the fabric object as navigation state lets FabricDetail render
-  // instantly without a network request when coming from this page.
+  const { navigateToFabric } = useFabricNavigation();
+
+  // ── Card click: save scroll position then navigate ────────────────────────
+  // Scroll position is saved here (not in the hook) because only ShopFabrics
+  // needs to restore it when the user presses Back from the detail page.
   const handleCardClick = (fabric) => {
     sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
-    navigate(`/shop/${fabric._id}`, { state: { fabric } });
+    navigateToFabric(fabric);
   };
 
   return (
