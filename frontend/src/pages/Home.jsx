@@ -5,7 +5,6 @@ import HeroSection from '../components/HeroSection';
 import FabricCarousel from '../components/FabricCarousel';
 import FilterBar from '../components/FilterBar';
 import FeedGrid from '../components/Feed/FeedGrid';
-import FabricModal from '../components/FabricModal';
 import PostModal from '../components/PostModal';
 import HowItWorks from '../components/HowItWorks';
 import Footer from '../components/Footer';
@@ -19,7 +18,6 @@ import { Star } from 'lucide-react';
 export default function Home() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
-  const [selectedFabric, setSelectedFabric] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [postImageIndices, setPostImageIndices] = useState({});
   const [displayedItems, setDisplayedItems] = useState(8);
@@ -166,14 +164,13 @@ export default function Home() {
     setDisplayedItems(12);
   }, [filter]);
 
-  // Fabric modal handlers
-  const openFabricModal = (fabric) => {
-    setSelectedFabric(fabric);
+  // Navigate to the product page, passing the fabric object as navigation state
+  // so FabricDetail can render instantly without an extra network request.
+  const handleFabricClick = (fabric) => {
+    const fabricId = fabric._id || fabric.id;
+    navigate(`/shop/${fabricId}`, { state: { fabric } });
   };
 
-  const closeFabricModal = () => {
-    setSelectedFabric(null);
-  };
 
   const openPostModal = (post) => {
     setSelectedPost(post);
@@ -181,11 +178,6 @@ export default function Home() {
 
   const closePostModal = () => {
     setSelectedPost(null);
-  };
-
-  const viewFabricDesigns = (fabric) => {
-    const fabricId = fabric.id || fabric._id;
-    navigate(`/fabric/${fabricId}/designs`);
   };
 
   // Post image navigation handlers
@@ -215,7 +207,7 @@ export default function Home() {
       
       <FabricCarousel 
         fabricData={fabrics} 
-        onFabricClick={openFabricModal} 
+        onFabricClick={handleFabricClick} 
       />
       
       <FilterBar 
@@ -228,7 +220,7 @@ export default function Home() {
         loading={loading}
         displayedItems={displayedItems}
         filteredFeedLength={filteredFeed.length}
-        onFabricClick={openFabricModal}
+        onFabricClick={handleFabricClick}
         onPostClick={openPostModal}
         postImageIndices={postImageIndices}
         onNextPostImage={nextPostImage}
@@ -236,12 +228,7 @@ export default function Home() {
         observerTarget={observerTarget}
       />
 
-      <FabricModal
-        fabric={selectedFabric}
-        onClose={closeFabricModal}
-        onViewAll={viewFabricDesigns}
-      />
-      
+
       <PostModal
         post={selectedPost}
         onClose={closePostModal}
